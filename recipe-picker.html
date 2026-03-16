@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Declan's Recipe Picker</title>
+  <meta name="theme-color" content="#7C9070">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    input { font-family: inherit; border: none; outline: none; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      --primary: #7C9070;
+      --primary-dark: #5A6B50;
+      --primary-light: #A8B89E;
+      --accent: #C4704B;
+      --accent-light: #E8956E;
+      --bg: #FFF8F0;
+      --bg-card: #FFFFFF;
+      --bg-input: #F5EDE4;
+      --text: #2D2D2D;
+      --text-secondary: #6B6B6B;
+      --text-muted: #999;
+      --border: #E8E0D8;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+      --danger: #E74C3C;
+      --success: #27AE60;
+      --warning: #F39C12;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A1A1E;
+        --bg-card: #2A2A2E;
+        --bg-input: #333338;
+        --text: #F0E6D8;
+        --text-secondary: #A8A8A8;
+        --text-muted: #777;
+        --border: #3A3A3E;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+        --primary-light: #6A7E60;
+      }
+    }
+
+    /* ===== LAYOUT ===== */
+    #app {
+      max-width: 800px;
+      margin: 0 auto;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      padding: 16px 16px 0;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 40;
+    }
+    .app-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .app-header h1 { color: var(--primary-light); }
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-input);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+    .search-box svg { flex-shrink: 0; color: var(--text-muted); }
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+    .tag-filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tag-filters::-webkit-scrollbar { display: none; }
+    .tag-pill {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      text-transform: capitalize;
+    }
+    .tag-pill.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* ===== RECIPE GRID ===== */
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 12px;
+      padding: 4px 16px 100px;
+    }
+    .recipe-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .recipe-card:active { transform: scale(0.97); }
+    .recipe-card.selected { border-color: var(--primary); }
+    .card-band {
+      height: 6px;
+      width: 100%;
+    }
+    .card-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+    .card-body { padding: 12px; }
+    .card-name {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 2px;
+      color: var(--text);
+    }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .mini-tag {
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+    .card-checkbox {
+      position: absolute;
+      top: 12px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      z-index: 2;
+    }
+    .recipe-card.selected .card-checkbox {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .card-checkbox svg { opacity: 0; transition: opacity 0.15s; }
+    .recipe-card.selected .card-checkbox svg { opacity: 1; }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state p { font-size: 15px; margin-top: 8px; }
+
+    /* ===== DETAIL VIEW ===== */
+    .detail-view { padding: 0 16px 100px; }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 0;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    .detail-hero {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+    .detail-title {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .detail-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .detail-info {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--bg-input);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.15s;
+      min-height: 48px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: #fff; flex: 1; }
+    .btn-secondary { background: var(--bg-input); color: var(--text); }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 8px 14px; font-size: 13px; min-height: 36px; }
+    .serving-selector {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .serving-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .serving-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border);
+    }
+    .ingredient-group { margin-bottom: 16px; }
+    .ingredient-group h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .ingredient-group h4 { color: var(--primary-light); }
+    }
+    .ingredient-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ingredient-item:last-child { border-bottom: none; }
+    .ingredient-amount {
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .step-summary { margin-bottom: 20px; }
+    .step-summary-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-summary-item:last-child { border-bottom: none; }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .step-summary-content h4 { font-size: 14px; font-weight: 600; }
+    .step-summary-content p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+    .pantry-note {
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pantry-note strong { color: var(--text); }
+    .tools-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ===== SHOPPING VIEW ===== */
+    .shopping-view { padding: 0 16px 100px; }
+    .shopping-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .shopping-header h2 { font-size: 20px; font-weight: 700; }
+    .shopping-recipe-servings {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .shopping-recipe-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+    .shopping-recipe-name { font-size: 14px; font-weight: 500; flex: 1; margin-right: 8px; }
+    .serving-toggle {
+      display: flex;
+      gap: 4px;
+    }
+    .serving-toggle button {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg-input);
+      color: var(--text-secondary);
+    }
+    .serving-toggle button.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .shopping-category { margin-bottom: 16px; }
+    .shopping-category h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--border);
+    }
+    @media (prefers-color-scheme: dark) {
+      .shopping-category h3 { color: var(--primary-light); }
+    }
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .shopping-item:last-child { border-bottom: none; }
+    .shopping-item.checked { opacity: 0.45; text-decoration: line-through; }
+    .shop-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .shopping-item.checked .shop-check {
+      background: var(--success);
+      border-color: var(--success);
+    }
+    .shop-check svg { opacity: 0; }
+    .shopping-item.checked .shop-check svg { opacity: 1; }
+    .shop-name { flex: 1; }
+    .shop-amount { color: var(--text-secondary); font-weight: 500; font-size: 14px; white-space: nowrap; }
+    .shopping-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* ===== COOKING MODE ===== */
+    #cooking-view {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+    }
+    #cooking-view.active { display: flex; }
+    #cooking-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .cooking-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    }
+    .cooking-exit {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cooking-ingredients-btn {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      background: var(--bg-input);
+      border-radius: 20px;
+    }
+    .cooking-progress {
+      padding: 0 16px;
+      margin-bottom: 4px;
+    }
+    .cooking-progress-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .cooking-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cooking-step-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .cooking-step-title { color: var(--primary-light); }
+    }
+    .cooking-instruction {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .cooking-important {
+      background: #FFF3E0;
+      border-left: 4px solid var(--warning);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .cooking-important strong {
+      display: block;
+      color: var(--warning);
+      margin-bottom: 4px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .cooking-important { background: #3E2E1A; }
+    }
+    .cooking-tip {
+      background: var(--bg-input);
+      border-left: 4px solid var(--primary);
+      padding: 10px 14px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .cooking-tip strong {
+      display: block;
+      color: var(--primary);
+      margin-bottom: 2px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cooking-thermomix {
+      background: #EDE7F6;
+      border-left: 4px solid #7E57C2;
+      padding: 10px 14px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #4A148C;
+      line-height: 1.5;
+    }
+    .cooking-thermomix strong {
+      display: block;
+      color: #7E57C2;
+      margin-bottom: 2px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .cooking-thermomix { background: #2A1E3E; color: #CE93D8; }
+      .cooking-thermomix strong { color: #B39DDB; }
+    }
+    /* Thermomix toggle */
+    .tm-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .tm-toggle.active {
+      background: #EDE7F6;
+      color: #7E57C2;
+    }
+    @media (prefers-color-scheme: dark) {
+      .tm-toggle.active { background: #2A1E3E; color: #CE93D8; }
+    }
+    .tm-switch {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--border);
+      position: relative;
+      transition: background 0.2s;
+    }
+    .tm-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+    .tm-toggle.active .tm-switch {
+      background: #7E57C2;
+    }
+    .tm-toggle.active .tm-switch::after {
+      transform: translateX(16px);
+    }
+    .timer-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 24px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 4px;
+      transition: all 0.15s;
+      min-height: 50px;
+    }
+    .timer-btn:active { transform: scale(0.97); }
+    .timer-btn.running {
+      background: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-btn.done {
+      background: var(--danger);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .cooking-nav {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + var(--safe-bottom));
+      border-top: 1px solid var(--border);
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 50px;
+    }
+    .nav-btn.prev { background: var(--bg-input); color: var(--text); }
+    .nav-btn.next { background: var(--primary); color: #fff; }
+    .nav-btn:disabled { opacity: 0.3; pointer-events: none; }
+    .cooking-done {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .cooking-done h2 { font-size: 28px; margin-bottom: 8px; }
+    .cooking-done p { font-size: 16px; color: var(--text-secondary); margin-bottom: 24px; }
+
+    /* ===== INGREDIENT OVERLAY ===== */
+    .overlay-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 199;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .overlay-backdrop.visible { opacity: 1; pointer-events: auto; }
+    .ingredient-overlay {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 70vh;
+      background: var(--bg-card);
+      border-radius: var(--radius) var(--radius) 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+      z-index: 200;
+      padding: 20px;
+      padding-bottom: calc(20px + var(--safe-bottom));
+    }
+    .ingredient-overlay.visible { transform: translateY(0); }
+    .overlay-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .overlay-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    /* ===== BOTTOM BAR ===== */
+    #bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      padding-bottom: calc(10px + var(--safe-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 50;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    }
+    #bottom-bar.visible { transform: translateY(0); }
+    .selected-info {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .selected-info span { color: var(--primary); }
+    .bottom-actions { display: flex; gap: 8px; }
+
+    /* ===== TAG COLOURS ===== */
+    .tag-spicy { background: #FDE8E8; color: #C0392B; }
+    .tag-quick { background: #E8F5E9; color: #2E7D32; }
+    .tag-vegetarian, .tag-veggie { background: #E8F5E9; color: #2E7D32; }
+    .tag-pork { background: #FBE9E7; color: #BF360C; }
+    .tag-chicken { background: #FFF8E1; color: #F57F17; }
+    .tag-pasta { background: #FFF3E0; color: #E65100; }
+    .tag-curry { background: #FFF8E1; color: #D4A017; }
+    .tag-wraps { background: #F3E5F5; color: #7B1FA2; }
+    .tag-rice { background: #E0F2F1; color: #00695C; }
+    .tag-seafood { background: #E3F2FD; color: #1565C0; }
+    .tag-beef { background: #EFEBE9; color: #4E342E; }
+    .tag-bao { background: #F3E5F5; color: #7B1FA2; }
+    .tag-fish { background: #E3F2FD; color: #1565C0; }
+    .tag-soup { background: #FFF8E1; color: #F9A825; }
+    .tag-burger { background: #EFEBE9; color: #5D4037; }
+    .tag-stew { background: #FBE9E7; color: #D84315; }
+    .tag-bake { background: #FFF3E0; color: #EF6C00; }
+    @media (prefers-color-scheme: dark) {
+      .tag-spicy { background: #3E1A1A; color: #E57373; }
+      .tag-quick { background: #1A3E1A; color: #81C784; }
+      .tag-vegetarian, .tag-veggie { background: #1A3E1A; color: #81C784; }
+      .tag-pork { background: #3E2A1A; color: #FFAB91; }
+      .tag-chicken { background: #3E351A; color: #FFD54F; }
+      .tag-pasta { background: #3E2E1A; color: #FFB74D; }
+      .tag-curry { background: #3E351A; color: #FFD54F; }
+      .tag-wraps { background: #2E1A3E; color: #CE93D8; }
+      .tag-rice { background: #1A3E3A; color: #80CBC4; }
+      .tag-seafood { background: #1A2A3E; color: #64B5F6; }
+      .tag-beef { background: #2E2420; color: #BCAAA4; }
+      .tag-bao { background: #2E1A3E; color: #CE93D8; }
+      .tag-fish { background: #1A2A3E; color: #64B5F6; }
+      .tag-soup { background: #3E351A; color: #FFF176; }
+      .tag-burger { background: #2E2420; color: #BCAAA4; }
+      .tag-stew { background: #3E2A1A; color: #FFAB91; }
+      .tag-bake { background: #3E2E1A; color: #FFB74D; }
+    }
+
+    /* ===== BAND COLOURS ===== */
+    .band-pork { background: #C4704B; }
+    .band-chicken { background: #D4A050; }
+    .band-veggie, .band-vegetarian { background: #7C9070; }
+    .band-pasta { background: #B8860B; }
+    .band-curry { background: #CD853F; }
+    .band-rice { background: #6B8E23; }
+    .band-default { background: #8B8B8B; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (min-width: 500px) {
+      .recipe-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    }
+    @media (min-width: 768px) {
+      .recipe-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+      .cooking-instruction { font-size: 20px; }
+      .cooking-step-title { font-size: 28px; }
+      .detail-actions { max-width: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Browse View -->
+    <div id="browse-view" class="view active">
+      <header class="app-header">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h1>Declan's Recipe Picker</h1>
+          <button class="tm-toggle" id="tm-toggle" onclick="toggleThermomix()">
+            TM6
+            <div class="tm-switch"></div>
+          </button>
+        </div>
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Search recipes..." autocomplete="off">
+        </div>
+        <div class="tag-filters" id="tag-filters"></div>
+      </header>
+      <div class="recipe-grid" id="recipe-grid"></div>
+    </div>
+
+    <!-- Detail View -->
+    <div id="detail-view" class="view">
+      <div class="detail-view" id="detail-content"></div>
+    </div>
+
+    <!-- Shopping View -->
+    <div id="shopping-view" class="view">
+      <div class="shopping-view" id="shopping-content"></div>
+    </div>
+
+    <!-- Cooking View (fixed overlay) -->
+    <div id="cooking-view">
+      <div id="cooking-content"></div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div id="bottom-bar">
+      <div class="selected-info"><span id="selected-count">0</span> recipe(s) selected</div>
+      <div class="bottom-actions">
+        <button class="btn btn-sm btn-secondary" onclick="clearSelection()">Clear</button>
+        <button class="btn btn-sm btn-primary" onclick="showView('shopping')">Shopping List</button>
+      </div>
+    </div>
+
+    <!-- Ingredient Overlay (cooking mode) -->
+    <div class="overlay-backdrop" id="overlay-backdrop" onclick="closeIngredientOverlay()"></div>
+    <div class="ingredient-overlay" id="ingredient-overlay"></div>
+  </div>
+
+  <script>
+    /* ===== RECIPE DATA ===== */
+    const RECIPES = [
+      {
+        id: "taiwanese-pulled-pork-wraps",
+        name: "Taiwanese-Inspired Pulled Pork and Mushroom Wraps",
+        subtitle: "with marinated veg",
+        prepTime: "30-35 mins",
+        tags: ["spicy", "pork", "wraps", "quick"],
+        source: "HelloFresh #46",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Butter", "Egg", "Sugar", "Salt", "Pepper", "Oil"],
+        cookingTools: ["Oven dish"],
+        ingredients: [
+          { name: "Irish Pulled Pork", category: "Meat & Fish", amounts: { "2": "300 g", "4": "600 g", "6": "900 g" } },
+          { name: "Mushrooms", category: "Fresh Veg & Herbs", amounts: { "2": "150 g", "4": "250 g", "6": "400 g" } },
+          { name: "Wraps", category: "Pantry & Dry Goods", amounts: { "2": "6 units", "4": "12 units", "6": "18 units" } },
+          { name: "Scallion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Hoisin Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Cucumber", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Radish", category: "Fresh Veg & Herbs", amounts: { "2": "125 g", "4": "250 g", "6": "375 g" } },
+          { name: "Crispy Onions", category: "Pantry & Dry Goods", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Sriracha", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Apple Cider Vinegar", category: "Sauces & Condiments", amounts: { "2": "20 ml", "4": "40 ml", "6": "60 ml" } },
+          { name: "Sesame Oil", category: "Sauces & Condiments", amounts: { "2": "10 ml", "4": "20 ml", "6": "30 ml" } }
+        ],
+        steps: [
+          { number: 1, title: "Pull the Pork", instruction: "Preheat the oven to 240\u00b0C/220\u00b0C fan/gas mark 9. Remove all the packaging and pop the pork into an oven dish. Cover with foil and cook on the middle shelf of the oven for 25-30 mins. Once cooked, remove from the oven, add the hoisin sauce and pull apart with the help of two forks.", important: "Ensure the pork is piping hot all the way through.", timerMinutes: 25, thermomixTip: "TM6 can\u2019t replace the oven here, but you can use the Varoma to steam-heat the pork: place in Varoma dish, add 500ml water to bowl, Varoma/speed 2/25 mins. Then shred with forks and mix with hoisin." },
+          { number: 2, title: "Prep the Rest", instruction: "Meanwhile, trim and thinly slice the radish and cucumber. Marinate them in apple cider vinegar, sesame oil and \u00bd tsp sugar (per 2P). Season to taste with salt and pepper. Set aside, continuing to stir occasionally. Trim and thinly slice the scallion. Roughly chop the mushrooms.", important: null, timerMinutes: null, thermomixTip: "Slice the radish and cucumber using the TM6 slicer insert (speed 4/2 seconds). Add the vinegar, sesame oil and sugar to the bowl and mix 10 sec/speed 3." },
+          { number: 3, title: "Char the Mushrooms", instruction: "Place a large pan over high heat with 1 tbsp butter (per 2P) and a drizzle of oil. Once pan is hot, add mushrooms and cook until charred, 3-4 mins, shifting occasionally as they cook. Remove from the pan, cover and set aside.", important: null, timerMinutes: 4, thermomixTip: "Roughly chop mushrooms in TM6: speed 4/3 seconds. Cook them in a pan for best charred results \u2014 TM6 won\u2019t give the same char." },
+          { number: 4, title: "Mix the Egg", instruction: "Meanwhile, crack 2 eggs (per 2P) in a bowl. Season with salt and pepper and add the scallion and mix well. Wipe and return the pan to a medium-high heat with a drizzle of oil. Place 1 wrap at a time on the pan. Spread 1 tbsp of egg mix, with the back of a spoon on the top of the wrap and carefully turn it over.", important: null, timerMinutes: null, thermomixTip: "Mix the eggs, scallion, salt and pepper in the TM6: speed 3/5 seconds. Then cook the wraps in a pan as directed." },
+          { number: 5, title: "Fry the Egg", instruction: "Fry until the egg has cooked, 1-2 mins. Remove from the pan and cover to keep warm. Repeat the process with the remaining egg mix and wraps.", important: null, timerMinutes: 2, tip: "Use more pans to quicken the process." },
+          { number: 6, title: "Assemble and Serve", instruction: "Divide the wraps between plates with the fried egg side up. Top with mushroom and hoisin pulled pork and some of the marinated veg. Drizzle over the sriracha sauce and fold the wraps. Sprinkle with crispy onions and serve any remaining veg alongside to eat.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "veggie-moroccan-harira",
+        name: "Veggie Moroccan Harira",
+        subtitle: "with roasted bell pepper and turmeric rice",
+        prepTime: "35-40 mins",
+        tags: ["veggie", "spicy", "vegetarian"],
+        source: "HelloFresh #7",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Baking sheet", "Baking paper", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Lentils", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Ground Cinnamon", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Ground Turmeric", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Ground Cumin", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Harissa Spice Mix", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Passata", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Cranberry Chutney", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Greek Style Cheese", category: "Dairy & Eggs", amounts: { "2": "100 g", "4": "200 g", "6": "300 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Preheat the oven to 240\u00b0C/220\u00b0C fan/gas mark 9. Rinse the rice to remove excess starch. Pour 300ml cold salted water (per 2P) into a medium pot with a tight-fitting lid. Stir in the rice and half the turmeric and bring to the boil. Once boiling, lower the heat to medium, cover with the lid and cook for 10 mins. Remove the pot from the heat and keep covered for another 10 mins or until ready to serve.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: add rice, water (per 2P: 300ml) and half the turmeric. Cook 12 min/100\u00b0C/speed 1/Reverse. Let stand 10 mins with MC closed." },
+          { number: 2, title: "Char the Pepper", instruction: "Meanwhile, halve the pepper and discard the core and seeds. Chop into 2cm chunks. Pop the pepper onto a lined baking tray. Drizzle with a little oil, season with salt and pepper then toss to coat. When the oven is hot, roast on the top shelf until soft and slightly charred, 15-18 mins.", important: null, timerMinutes: 15, thermomixTip: "Chop peppers in TM6: speed 5/3 seconds. Still best roasted in the oven for char, but you can steam in Varoma 15 min/Varoma/speed 2 for a softer result." },
+          { number: 3, title: "Prep the Veg", instruction: "Meanwhile, halve, peel and chop the onion into small pieces. Roughly chop the coriander (stalks and all). Drain and rinse the lentils in a sieve.", important: null, timerMinutes: null, thermomixTip: "Chop onion in TM6: halve, then speed 5/3 seconds. Chop coriander: speed 7/2 seconds." },
+          { number: 4, title: "Start the Harira", instruction: "Place a large pan over medium-high heat with a drizzle of oil. Once hot, fry the onion until softened, stirring occasionally, 4-5 mins. Stir in the cumin, harissa spice mix, half a sachet of cinnamon (per 2P) and drained lentils and remaining turmeric. Add the passata, 100ml water (per 2P) and \u00bc tsp salt (per 2P). Cover and simmer for 6-8 mins.", important: null, timerMinutes: 6, thermomixTip: "Saut\u00e9 onion in TM6: 5 min/120\u00b0C/speed 1. Add spices, lentils, passata, water and salt. Cook 8 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Finishing Touches", instruction: "Once everything is ready, stir the cranberry chutney and half the roasted pepper through the harira. Add a splash of water to loosen the stew if required. Season to taste with salt and pepper.", important: null, timerMinutes: null, thermomixTip: "Add chutney and roasted pepper to TM6 bowl. Mix 10 sec/speed 2/Reverse." },
+          { number: 6, title: "Garnish and Serve", instruction: "Fluff up the fragrant turmeric rice with a fork and divide between plates. Serve the flavourful harira alongside. Crumble over the Greek-style cheese and scatter over the remaining roasted pepper. Finish with a sprinkling of chopped coriander.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "spicy-mushroom-bacon-linguine",
+        name: "Spicy Mushroom and Bacon Linguine",
+        subtitle: "with baby spinach and fresh chilli",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "pasta", "pork", "quick"],
+        source: "HelloFresh #6",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Colander", "Grater"],
+        ingredients: [
+          { name: "Irish Bacon Lardons", category: "Meat & Fish", amounts: { "2": "100 g", "4": "200 g", "6": "300 g" } },
+          { name: "Mushrooms", category: "Fresh Veg & Herbs", amounts: { "2": "150 g", "4": "250 g", "6": "400 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "110 g", "4": "220 g", "6": "330 g" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Baby Spinach", category: "Fresh Veg & Herbs", amounts: { "2": "40 g", "4": "80 g", "6": "120 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "25 g", "4": "50 g", "6": "75 g" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Dried Linguine", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g", "6": "540 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Pasta", instruction: "Boil a large pot of salted water for the linguine. When boiling, add the linguine to the water and bring back to the boil. Cook until softened, 10-12 mins. Once cooked, reserve a cup of pasta water, drain in a colander and pop back in the pot, off the heat. Drizzle with oil and stir through to prevent sticking.", important: null, timerMinutes: 10, tip: "If you're in a hurry you can boil the water in your kettle.", thermomixTip: "Boil pasta on the hob as usual \u2014 TM6 bowl is needed for the sauce. Alternatively, cook pasta in TM6: add 1L water and linguine, cook 11 min/100\u00b0C/speed 2/Reverse." },
+          { number: 2, title: "Cook the Veg", instruction: "Meanwhile, roughly chop the mushrooms. Peel and grate the garlic (or use a garlic press). Halve the chilli, discard the core and seeds and finely chop. Halve, peel and thinly slice the onion. Place a large pan over medium-high heat without oil. Once hot, fry the bacon, mushrooms, garlic and onion until golden, stirring, 4-5 mins.", important: "Wash hands and equipment after handling raw meat. Cook lardons thoroughly.", timerMinutes: 5, thermomixTip: "Chop mushrooms, onion, garlic and chilli in TM6: speed 5/3 seconds. Saut\u00e9 with bacon in TM6: 5 min/120\u00b0C/Reverse/speed 1." },
+          { number: 3, title: "Simmer the Sauce", instruction: "Add the chilli, stock, a splash of pasta water and creme fraiche to the pan. Simmer until the sauce has thickened, 10-14 mins (add a splash of water if the sauce becomes too thick). Once simmered, carefully mix in the drained linguine and spinach. Cook until the spinach is wilted. Season to taste with salt and pepper.", important: null, timerMinutes: 10, thermomixTip: "Add stock, pasta water and creme fraiche to TM6 bowl with the veg. Cook 10 min/100\u00b0C/speed 1/Reverse. Add drained linguine and spinach, mix 30 sec/speed 1/Reverse." },
+          { number: 4, title: "Finish and Serve", instruction: "Divide the creamy bacon linguine between deep plates or bowls. Top with a sprinkling of cheese.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "butter-chicken-curry",
+        name: "Butter Chicken Curry",
+        subtitle: "with coriander and rice",
+        prepTime: "20-25 mins",
+        tags: ["chicken", "curry", "quick"],
+        source: "HelloFresh #3",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Garlic", "Butter", "Water", "Salt", "Pepper", "Sugar", "Oil"],
+        cookingTools: ["Pot with lid"],
+        ingredients: [
+          { name: "Diced Irish Chicken", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g", "6": "780 g" } },
+          { name: "North Indian Spice Mix", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Cashew Nuts", category: "Pantry & Dry Goods", amounts: { "2": "15 g", "4": "30 g", "6": "45 g" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "110 g", "4": "220 g", "6": "330 g" } },
+          { name: "Korma Curry Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Passata", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Rice", instruction: "Rinse the rice to remove excess starch. Pour 300ml cold salted water (per 2P) into a medium pot with a tight-fitting lid. Stir in the rice and bring to the boil. Once boiling, lower the heat to medium and cover with the lid. Leave to cook for 10 mins, then remove the pot from the heat. Keep covered for another 10 mins or until ready to serve.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: add rice and water (300ml per 2P). Cook 12 min/100\u00b0C/speed 1/Reverse. Let stand 10 mins with MC closed." },
+          { number: 2, title: "Get Prepped", instruction: "Meanwhile, halve, peel and chop the onion into small pieces. Roughly chop the coriander (stalks and all).", important: null, timerMinutes: null, thermomixTip: "Chop onion in TM6: quarter, then speed 5/3 seconds. Remove and set aside. Chop coriander: speed 7/2 seconds." },
+          { number: 3, title: "Soften the Onion", instruction: "Place a large pot over medium heat with 2 tbsp butter (per 2P) and a drizzle of oil. Once hot, fry the onion until softened, stirring occasionally, 4-5 mins. Add the North Indian spice mix and korma paste and cook until fragrant, 1 min. Season with salt and pepper.", important: null, timerMinutes: 5, thermomixTip: "Saut\u00e9 in TM6: add butter, oil and onion. Cook 5 min/120\u00b0C/speed 1/Reverse. Add spice mix and korma paste, cook 1 min/100\u00b0C/speed 1." },
+          { number: 4, title: "Fry the Chicken", instruction: "Add the chicken to the onion and season with salt and pepper. Fry until golden brown on the outside and cooked through, 8-10 mins.", important: "Wash hands and equipment after handling raw chicken and its packaging. Chicken is cooked when no longer pink in the middle.", timerMinutes: 8, thermomixTip: "Add chicken to TM6 bowl. Cook 8 min/120\u00b0C/Reverse/speed 1. Check chicken is cooked through (no longer pink). For browning, finish in a hot pan for 2 mins." },
+          { number: 5, title: "Simmer the Sauce", instruction: "Add the passata, creme fraiche and 25ml water (per 2P). Simmer until sauce is slightly reduced, 7-9 mins. Season to taste with salt, pepper and sugar.", important: null, timerMinutes: 7, tip: "Add a splash of water if you feel the sauce needs loosening.", thermomixTip: "Add passata, creme fraiche and water to TM6. Cook 8 min/100\u00b0C/speed 1/Reverse. Season to taste." },
+          { number: 6, title: "Garnish and Serve", instruction: "Fluff up the rice with the fork and divide between bowls. Serve the butter chicken alongside the rice. Garnish with a sprinkling of cashews and coriander.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "pork-pak-choi-rice",
+        name: "Pork and Pak Choi Rice",
+        subtitle: "with chilli and coriander",
+        prepTime: "20-25 mins",
+        tags: ["pork", "quick", "spicy", "rice"],
+        source: "HelloFresh #3",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Water", "Oil"],
+        cookingTools: ["Grater", "Pot with lid"],
+        ingredients: [
+          { name: "Irish Pork Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g", "6": "720 g" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Scallion", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "2 units" } },
+          { name: "Pak Choi", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Ketjap Manis", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Rice", instruction: "Rinse the rice to remove excess starch. Pour 300ml cold salted water (per 2P) into a medium pot with a tight-fitting lid. Stir in the rice and bring to the boil. Once boiling, lower the heat to medium and cover with the lid. Leave to cook for 10 mins, then remove the pot from the heat. Keep covered for another 10 mins or until ready to serve.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: add rice and water (300ml per 2P). Cook 12 min/100\u00b0C/speed 1/Reverse. Let stand 10 mins with MC closed." },
+          { number: 2, title: "Get Prepped", instruction: "Meanwhile, halve, peel and chop the onion into small pieces. Peel and grate the garlic (or use a garlic press). Halve the chilli lengthways. Deseed and finely chop half (use all for 4P and 6P). Trim the scallion and thinly slice. Trim the pak choi, then thinly slice widthways. Roughly chop the coriander (stalks and all).", important: null, timerMinutes: null, thermomixTip: "Chop all veg in TM6 in batches: onion, garlic, chilli \u2014 speed 5/3 seconds. Scallion and pak choi \u2014 speed 4/2 seconds. Coriander \u2014 speed 7/2 seconds. Set aside." },
+          { number: 3, title: "Cook the Mince", instruction: "Place a large pan over high heat (without oil). Once hot, fry the mince until browned, 5-6 mins. Use a spoon to break up the mince as it cooks.", important: "Wash hands and equipment after handling raw mince. Mince is cooked when no longer pink in the middle.", timerMinutes: 5, thermomixTip: "Brown mince in a pan for best results \u2014 TM6 won\u2019t give the same sear. Alternatively: cook 6 min/Varoma/Reverse/speed 1 in TM6 but browning will be limited." },
+          { number: 4, title: "Add the Veg", instruction: "Once the mince is browned, add the pak choi, onion, garlic, scallion and chopped chilli (use less if you don't like spice) to the pan. Drizzle in a little oil if necessary. Cook until the veg is softened, 4-5 mins.", important: null, timerMinutes: 4, thermomixTip: "If using TM6 for the mince, add all chopped veg to the bowl. Cook 4 min/120\u00b0C/Reverse/speed 1." },
+          { number: 5, title: "Stir in the Sauce", instruction: "Pour in the ketjap manis and soy sauce and stir everything together. Season to taste with salt and pepper. Remove the pan from the heat. Stir in half the coriander.", important: null, timerMinutes: null, tip: "Add a splash of water if the mince is too dry.", thermomixTip: "Add ketjap manis and soy sauce to TM6. Mix 30 sec/speed 2/Reverse. Stir in half the coriander." },
+          { number: 6, title: "Finish and Serve", instruction: "Fluff up the rice with a fork and share between bowls. Top with the stir-fry and remaining coriander.", important: null, timerMinutes: null }
+        ]
+      }
+      ,
+      {
+        id: "thai-style-chicken-curry-pepper",
+        name: "Thai Style Chicken Curry",
+        subtitle: "with bell pepper and fragrant rice",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "chicken", "curry", "quick"],
+        source: "HelloFresh #1",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Pot with lid", "Zester", "Large pan"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g", "6": "780 g" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "2 units" } },
+          { name: "Red Thai Style Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "3 sachets", "6": "3 sachets" } },
+          { name: "Coconut Milk", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "3 packs", "6": "3 packs" } },
+          { name: "Lime", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice to remove excess starch. Pour 300ml cold salted water (per 2P) into a medium pot with a tight-fitting lid. Stir in the rice and bring to the boil. Once boiling, lower the heat to medium and cover with the lid. Cook for 12 mins then remove from heat. Keep covered for another 12 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook rice in TM6: add rice and water (300ml per 2P). Cook 12 min/100\u00b0C/speed 1/Reverse. Let stand 12 mins with MC closed." },
+          { number: 2, title: "Prep Your Veg", instruction: "Trim the carrot and chop into 1cm cubes. Halve, deseed and chop the bell pepper into 2cm chunks. Halve, peel and thinly slice the onion. Halve the chilli lengthways, deseed and finely chop. Zest and halve the lime. Stir the coconut milk to dissolve any lumps.", important: null, timerMinutes: null, thermomixTip: "Chop carrot in TM6: speed 5/3 seconds. Chop pepper and onion separately: speed 5/3 seconds each." },
+          { number: 3, title: "Start the Curry", instruction: "Place a large pan over medium-high heat with a drizzle of oil. Once hot, fry the chicken and onion until starting to brown, 3-4 mins. Add the carrot and bell pepper and fry for 2 mins more.", important: "Wash hands and equipment after handling raw chicken.", timerMinutes: 4, thermomixTip: "Saut\u00e9 in TM6: add oil, chicken and onion. Cook 4 min/Varoma/Reverse/speed 1. Add carrot and pepper, cook 2 min more." },
+          { number: 4, title: "Simmer the Sauce", instruction: "Add the Thai spice mix, red Thai paste and half the chilli to the pan. Cook until fragrant, 30 secs. Stir in the coconut milk. Simmer until chicken is cooked through and veg is tender, 6-8 mins.", important: "Chicken is cooked when no longer pink in the middle.", timerMinutes: 7, thermomixTip: "Add spice mix, Thai paste, chilli and coconut milk to TM6. Cook 8 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Finishing Touches", instruction: "Add a squeeze of lime juice to the curry. Season to taste with salt, pepper and more lime juice. Stir the lime zest through the rice, fluffing it up.", important: null, timerMinutes: null, tip: "Loosen the curry with a splash of water if too thick." },
+          { number: 6, title: "Garnish and Serve", instruction: "Divide the lime rice between bowls. Top with the Thai style chicken curry. Finish with remaining chilli.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "cajun-fried-chicken",
+        name: "Cajun Fried Chicken",
+        subtitle: "with loaded salad and roast potatoes",
+        prepTime: "35-40 mins",
+        tags: ["chicken", "spicy"],
+        source: "HelloFresh W47",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Salt", "Pepper", "Oil"],
+        cookingTools: ["Baking sheet", "Baking paper"],
+        ingredients: [
+          { name: "Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "320 g", "4": "640 g" } },
+          { name: "Cajun Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Baby Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "500 g", "4": "1000 g" } },
+          { name: "Radish", category: "Fresh Veg & Herbs", amounts: { "2": "125 g", "4": "250 g" } },
+          { name: "Tomato", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units" } },
+          { name: "Salad Leaves", category: "Fresh Veg & Herbs", amounts: { "2": "40 g", "4": "80 g" } },
+          { name: "Honey Mustard Dressing", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Crispy Onions", category: "Pantry & Dry Goods", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Dried Chilli Flakes", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Potatoes", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Chop the potatoes into 2cm chunks. Pop onto a large lined baking tray. Toss with chilli flakes, salt, pepper and oil. When oven is hot, bake on the top shelf until golden, 25-35 mins. Turn halfway.", important: null, timerMinutes: 30, tip: "Use two baking trays if necessary.", thermomixTip: "Roast potatoes in the oven as directed \u2014 TM6 can\u2019t replicate the roast." },
+          { number: 2, title: "Assemble the Salad", instruction: "Trim and quarter the radish. Cut the tomato into 2cm chunks. Just before serving, toss the salad leaves with tomatoes, radish, and honey mustard dressing. Season with salt and pepper.", important: null, timerMinutes: null, thermomixTip: "Prep veg by hand for salad \u2014 TM6 would over-process." },
+          { number: 3, title: "Fry the Cajun Chicken", instruction: "Thinly slice the chicken into strips. When potatoes have 10 mins left, place a pan over medium-high heat with oil. Add the chicken, season with Cajun spice, salt and pepper. Fry until cooked through, 3-4 mins each side.", important: "Wash hands after handling raw chicken. Chicken is cooked when no longer pink in the middle.", timerMinutes: 8, thermomixTip: "Pan-fry chicken for best results. TM6 won\u2019t give the same crispy sear." },
+          { number: 4, title: "Finish and Serve", instruction: "Divide the tossed salad and Cajun chicken between plates. Serve the roasted potatoes alongside. Drizzle over the aioli and scatter crispy onions over the top.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "carbonara-style-bacon-linguine",
+        name: "Carbonara Style Bacon Linguine",
+        subtitle: "with sprinkled chives and salad",
+        prepTime: "20-25 mins",
+        tags: ["pasta", "pork", "quick"],
+        source: "HelloFresh",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Egg", "Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Colander"],
+        ingredients: [
+          { name: "Irish Bacon Lardons", category: "Meat & Fish", amounts: { "2": "200 g", "4": "400 g", "6": "600 g" } },
+          { name: "Dried Linguine", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g", "6": "540 g" } },
+          { name: "Chives", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "110 g", "4": "220 g", "6": "330 g" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Salad Leaves", category: "Fresh Veg & Herbs", amounts: { "2": "40 g", "4": "80 g", "6": "120 g" } },
+          { name: "Balsamic Glaze", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Pasta", instruction: "Boil a large pot of salted water. Add the linguine and cook until softened, 10-12 mins. Reserve a cup of pasta water then drain in a colander. Pop back in the pot, off the heat. Drizzle with oil and stir to prevent sticking.", important: null, timerMinutes: 11, tip: "Boil the water in your kettle if in a hurry.", thermomixTip: "Cook pasta in TM6: add 1L water and linguine. Cook 11 min/100\u00b0C/speed 2/Reverse. Drain and set aside." },
+          { number: 2, title: "Fry the Bacon", instruction: "While pasta cooks, finely chop the chives (use scissors if you prefer). Place a pan over medium-high heat with a drizzle of oil. Add the bacon lardons and fry until golden, 5-8 mins.", important: "Wash hands after handling raw meat. Cook lardons thoroughly.", timerMinutes: 7, thermomixTip: "Fry lardons in a pan for best crispness. TM6 won\u2019t brown them as well." },
+          { number: 3, title: "Make the Sauce", instruction: "In a small bowl mix one egg (per 2P) with the creme fraiche, cheese and a good amount of pepper. Once lardons are ready, add the drained linguine to the pan. Cook on medium-high, stirring, until combined, 2-3 mins. Remove from heat and add the egg mixture. Stir to coat. Loosen with pasta water if needed. Season with salt and pepper.", important: null, timerMinutes: 3, thermomixTip: "Mix egg, creme fraiche and cheese in TM6: speed 3/5 seconds. Combine with pasta in the pan off the heat to avoid scrambling." },
+          { number: 4, title: "Finish and Serve", instruction: "Toss the salad leaves with balsamic glaze, oil, salt and pepper. Divide the carbonara between bowls. Top with chives. Serve salad alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "thai-chicken-curry-courgette",
+        name: "Thai Chicken Curry",
+        subtitle: "with courgette, carrot and coriander",
+        prepTime: "20-25 mins",
+        tags: ["chicken", "curry", "quick"],
+        source: "HelloFresh #2025-0948",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Pot with lid", "Zester"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g" } },
+          { name: "Courgette", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Lime", category: "Fresh Veg & Herbs", amounts: { "2": "0.5 unit", "4": "1 unit" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Red Thai Style Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Coconut Milk", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice and bring to the boil. Lower heat, cover and cook for 10 mins. Remove from heat, keep covered for 10 mins.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: add rice and water (300ml per 2P). Cook 12 min/100\u00b0C/speed 1/Reverse. Let stand 10 mins." },
+          { number: 2, title: "Get Prepped", instruction: "Trim the courgette and chop into 1cm chunks. Trim the carrot and slice into \u00bdcm thick rounds (no need to peel). Zest half a lime (per 2P). Chop the lime in half. Roughly chop the coriander (stalks and all). Halve the chilli lengthways, deseed and finely chop. Stir the coconut milk to dissolve any lumps.", important: null, timerMinutes: null, thermomixTip: "Chop courgette and carrot in TM6: speed 5/3 seconds each." },
+          { number: 3, title: "Fry the Veg", instruction: "Place a large pan over medium-high heat with a drizzle of oil. Add the chicken and carrot and fry until starting to soften, 5-6 mins. Add the courgette and fry for 2 mins more.", important: "Wash hands after handling raw chicken.", timerMinutes: 6, thermomixTip: "Saut\u00e9 in TM6: add oil, chicken and carrot. Cook 6 min/Varoma/Reverse/speed 1. Add courgette, cook 2 min more." },
+          { number: 4, title: "Simmer the Sauce", instruction: "Add the Thai spice mix, red Thai paste and half the chilli. Cook until fragrant, 30 secs. Stir in the coconut milk. Simmer until chicken is cooked through and veg is tender, 6-8 mins.", important: "Chicken is cooked when no longer pink in the middle.", timerMinutes: 7, thermomixTip: "Add spices and coconut milk to TM6. Cook 8 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Finishing Touches", instruction: "Squeeze lime juice into the curry. Stir through half the coriander. Season with salt, pepper and more lime. Mix lime zest through the rice, fluffing it up.", important: null, timerMinutes: null },
+          { number: 6, title: "Garnish and Serve", instruction: "Serve the rice in bowls topped with the chicken curry. Finish with coriander and remaining chilli.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "chorizo-mozzarella-rigatoni",
+        name: "Chorizo and Mozzarella Rigatoni",
+        subtitle: "with parsley and wilted spinach",
+        prepTime: "20-25 mins",
+        tags: ["pasta", "pork", "quick"],
+        source: "HelloFresh #3",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water", "Sugar", "Butter"],
+        cookingTools: ["Colander"],
+        ingredients: [
+          { name: "Chorizo", category: "Meat & Fish", amounts: { "2": "140 g", "4": "360 g", "6": "540 g" } },
+          { name: "Mozzarella", category: "Dairy & Eggs", amounts: { "2": "125 g", "4": "250 g", "6": "375 g" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Baby Spinach", category: "Fresh Veg & Herbs", amounts: { "2": "60 g", "4": "120 g", "6": "180 g" } },
+          { name: "Dried Chilli Flakes", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Dried Rigatoni", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g", "6": "540 g" } },
+          { name: "Parsley", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Chopped Tomatoes with Onion & Garlic", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Cajun Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Pasta", instruction: "Boil a pot of salted water. When boiling, add the rigatoni and cook until softened, 10-12 mins. Drain in a colander and pop back in the pot, off the heat. Drizzle with oil and stir to prevent sticking.", important: null, timerMinutes: 11, thermomixTip: "Cook pasta in TM6: add 1L water and rigatoni. Cook 12 min/100\u00b0C/speed 2/Reverse. Drain and set aside." },
+          { number: 2, title: "Simmer the Sauce", instruction: "Place a pan over medium-high heat with a drizzle of oil. Fry the chorizo until browning, 3-4 mins. Pour in the chopped tomatoes, stock, Cajun spice, chilli flakes and \u00bd tsp sugar (per 2P). Bring to the boil, reduce heat and simmer until thickened, 5-6 mins. Roughly chop the parsley.", important: null, timerMinutes: 6, thermomixTip: "Fry chorizo in a pan for best browning. Add sauce ingredients and simmer on hob." },
+          { number: 3, title: "Wilt the Spinach", instruction: "Once sauce has reduced, stir in the spinach a handful at a time until wilted, 1-2 mins. Drain the mozzarella and tear into chunks. Add the pasta, a knob of butter and half the mozzarella. Stir to combine and warm through, 1 min. Season with salt, pepper and sugar.", important: null, timerMinutes: 2, tip: "Loosen the sauce with a splash of water if too thick." },
+          { number: 4, title: "Garnish and Serve", instruction: "Divide the pasta between plates. Top with remaining mozzarella and crack some pepper over. Finish with chopped parsley.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "middle-eastern-prawn-stew",
+        name: "Middle Eastern Style Prawn Stew",
+        subtitle: "with chickpeas, courgette and bulgur",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "seafood", "quick"],
+        source: "HelloFresh #18",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Salt", "Water", "Oil", "Pepper", "Butter"],
+        cookingTools: ["Grater", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Prawns", category: "Meat & Fish", amounts: { "2": "150 g", "4": "300 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Bulgur Wheat", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g" } },
+          { name: "Courgette", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Passata", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } },
+          { name: "Harissa Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Middle Eastern Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Honey", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Chilli Oil", category: "Sauces & Condiments", amounts: { "2": "8 ml", "4": "16 ml" } },
+          { name: "Chickpeas", category: "Pantry & Dry Goods", amounts: { "2": "1 tin", "4": "2 tins" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Bulgur", instruction: "Place a pot over medium-high heat with a drizzle of oil. Halve, peel and chop the onion. Fry half the onion until softened, 4-5 mins. Add 300ml water (per 2P) and half the stock. Bring to the boil. Add the bulgur, bring back to boil then simmer for 1 min. Cover and remove from heat. Leave 12-15 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook bulgur in TM6: saut\u00e9 half the onion 4 min/120\u00b0C/speed 1. Add water and stock, cook 1 min/100\u00b0C/speed 1. Add bulgur, cook 1 min/100\u00b0C/speed 1/Reverse. Let stand 12 mins." },
+          { number: 2, title: "Soften the Onion", instruction: "Place a separate large pot over medium-high heat with oil. Add the remaining onion. Cook until softened, 4-5 mins. Season with salt and pepper.", important: null, timerMinutes: 5, thermomixTip: "Use a separate pan for the stew base \u2014 TM6 is cooking the bulgur." },
+          { number: 3, title: "Get Prepped", instruction: "Peel and crush the garlic. Trim the courgette, quarter lengthways, then slice into 1cm thick pieces. Drain and rinse the chickpeas. Mash half roughly with a fork. Add the garlic, Middle Eastern spice and all chickpeas to the softened onion. Cook until fragrant, 1 min.", important: null, timerMinutes: null, thermomixTip: "Crush garlic in a press. Use pan for the stew." },
+          { number: 4, title: "Simmer the Stew", instruction: "Pour in 100ml water (per 2P) and remaining stock along with the passata. Stir in chilli oil (less if you don\u2019t like spice), \u00bd tsp sugar and \u00bc tsp salt (per 2P). Cover and cook until thickened, 8-10 mins.", important: null, timerMinutes: 9, thermomixTip: "Continue simmering in the pan. TM6 is holding the bulgur." },
+          { number: 5, title: "Cook the Prawns", instruction: "With 5 mins left, stir in the prawns and courgette. Cover and simmer until prawns are cooked, 4-5 mins. Stir a knob of butter and harissa paste through. Season with salt, pepper and sugar.", important: "Prawns are cooked when pink outside and opaque in the middle.", timerMinutes: 5, tip: "Loosen with a splash of water if too thick." },
+          { number: 6, title: "Finish and Serve", instruction: "Fluff up the bulgur with a fork. Season with salt and pepper. Share between bowls and top with the harissa prawn stew. Drizzle with honey.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "spicy-pork-bao",
+        name: "Spicy Pork Bao",
+        subtitle: "with gochujang and pickled veg",
+        prepTime: "35-40 mins",
+        tags: ["spicy", "pork", "bao"],
+        source: "HelloFresh #36",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Baking tray", "Colander", "Peeler"],
+        ingredients: [
+          { name: "Irish Pork Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g" } },
+          { name: "Bao Buns", category: "Pantry & Dry Goods", amounts: { "2": "6 units", "4": "12 units" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "3 sachets" } },
+          { name: "Gochujang Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "4 sachets" } },
+          { name: "Cucumber", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units" } },
+          { name: "Peanuts", category: "Pantry & Dry Goods", amounts: { "2": "20 g", "4": "40 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit" } },
+          { name: "Ketjap Manis", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Apple Cider Vinegar", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Radish", category: "Fresh Veg & Herbs", amounts: { "2": "125 g", "4": "250 g" } },
+          { name: "Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "600 g", "4": "1200 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Potatoes", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Chop potatoes into 2cm chunks. Pop onto a lined baking tray. Drizzle with oil, season with Thai spice, salt and pepper. Roast on top shelf until golden, 25-35 mins. Turn halfway.", important: null, timerMinutes: 30, tip: "Use two baking trays if necessary.", thermomixTip: "Roast potatoes in oven \u2014 TM6 can\u2019t replicate this." },
+          { number: 2, title: "Pickle the Veg", instruction: "Halve, peel and chop the onion. Trim and thinly slice the radish. Trim the cucumber, halve lengthways, bash with bottom of a pot and thinly slice. In a bowl, toss cucumber and radish with \u00bc tsp salt, apple cider vinegar and 1 tsp sugar (per 2P). Set aside, stir occasionally.", important: null, timerMinutes: null, thermomixTip: "Slice radish and cucumber using TM6 slicer insert: speed 4/2 seconds. Pickle in a bowl as directed." },
+          { number: 3, title: "Fry the Mince", instruction: "Place a large pan over medium-high heat (no oil). Fry the mince and onion until browned, 5-6 mins. Break it up as it cooks. Season with salt and pepper. Remove from heat and stir through the ketjap manis.", important: "Wash hands after handling raw mince. Mince is cooked when no longer pink.", timerMinutes: 6, thermomixTip: "Brown mince in a pan for best results. TM6 won\u2019t give the same sear." },
+          { number: 4, title: "Make the Drizzle", instruction: "Mix the aioli and gochujang in a bowl. Roughly chop the peanuts.", important: null, timerMinutes: null, thermomixTip: "Mix aioli and gochujang in TM6: speed 3/5 seconds. Chop peanuts: speed 5/2 seconds." },
+          { number: 5, title: "Warm the Bao", instruction: "Place bao buns (three at a time) on a plate. Microwave covered for 1 min. Keep covered until serving.", important: null, timerMinutes: 1, tip: "No microwave? Steam them! Place a colander over a pot of boiling water, cover and steam 3-4 mins.", thermomixTip: "Steam bao in TM6 Varoma: add 500ml water, place bao in Varoma. Steam 4 min/Varoma/speed 2." },
+          { number: 6, title: "Assemble and Serve", instruction: "Fill each bao with mince and pickled veg. Top with gochujang aioli and chopped peanuts. Serve remaining pickled veg and roast potatoes alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "sweet-chilli-chicken",
+        name: "Sweet Chilli Chicken",
+        subtitle: "with sweet potato fries and side salad",
+        prepTime: "25-30 mins",
+        tags: ["chicken"],
+        source: "HelloFresh #2",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Sugar", "Oil", "Salt", "Pepper"],
+        cookingTools: ["Baking sheet", "Baking paper", "Grater"],
+        ingredients: [
+          { name: "Diced Irish Chicken", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g", "6": "780 g" } },
+          { name: "Breadcrumbs", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Sweet Potato", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Red Wine Vinegar", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Salad Leaves", category: "Fresh Veg & Herbs", amounts: { "2": "40 g", "4": "80 g", "6": "120 g" } },
+          { name: "Mayo", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Sweet Chilli Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Sweet Potato", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Chop sweet potato lengthways into 1cm slices, then into 1cm fries (unpeeled). Place on a lined baking tray. Toss with salt, pepper and oil. Roast on top shelf until golden, 20-25 mins. Turn halfway.", important: null, timerMinutes: 22, tip: "Space them out well for a crispy finish! Use two trays if needed.", thermomixTip: "Roast sweet potato fries in the oven \u2014 TM6 can\u2019t replicate the crispiness." },
+          { number: 2, title: "Coat the Chicken", instruction: "Add the chicken, breadcrumbs and half the aioli to a bowl. Toss to fully coat each piece. Season with pepper.", important: "Wash hands after handling raw chicken.", timerMinutes: null, thermomixTip: "Mix coating in TM6: speed 3/5 seconds. Or mix by hand for better control." },
+          { number: 3, title: "Cook the Chicken", instruction: "Arrange the chicken in a single layer on a separate lined baking tray. Drizzle a little oil over. Bake until cooked through and crispy, 16-20 mins.", important: "Chicken is cooked when no longer pink in the middle.", timerMinutes: 18 },
+          { number: 4, title: "Make the Dressing", instruction: "Trim and coarsely grate the carrot (no need to peel). In a large bowl, mix the vinegar, mayo and 1 tsp sugar (per 2P). Season with salt and pepper. Just before serving, add salad leaves and carrot and toss to coat.", important: null, timerMinutes: null, thermomixTip: "Grate carrot in TM6: speed 4/3 seconds with slicer insert." },
+          { number: 5, title: "Add the Sauce", instruction: "Toss the cooked chicken in the sweet chilli sauce and remaining aioli. Season with salt and pepper.", important: null, timerMinutes: null, tip: "Use less sweet chilli sauce if cooking for kids." },
+          { number: 6, title: "Finish and Serve", instruction: "Divide the sweet chilli chicken between plates. Serve the sweet potato fries and carrot salad alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "creamy-pesto-bacon-pasta-tomato",
+        name: "Creamy Pesto and Bacon Pasta",
+        subtitle: "with cheese and cherry tomatoes",
+        prepTime: "20-25 mins",
+        tags: ["pasta", "pork", "quick"],
+        source: "HelloFresh W50",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Colander", "Grater"],
+        ingredients: [
+          { name: "Irish Bacon", category: "Meat & Fish", amounts: { "2": "150 g", "4": "250 g", "6": "380 g" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "1 clove", "4": "1 clove", "6": "3 cloves" } },
+          { name: "Green Pesto", category: "Sauces & Condiments", amounts: { "2": "30 g", "4": "60 g", "6": "90 g" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Cherry Tomatoes", category: "Fresh Veg & Herbs", amounts: { "2": "125 g", "4": "250 g", "6": "375 g" } },
+          { name: "Dried Rigatoni", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g", "6": "540 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "110 g", "4": "220 g", "6": "330 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rigatoni", instruction: "Boil a large pot of salted water. When boiling, add the rigatoni and cook until softened, 10-12 mins. Drain in a colander and pop back in the pot, off the heat. Drizzle with oil and stir to prevent sticking.", important: null, timerMinutes: 11, tip: "Boil the water in your kettle if in a hurry.", thermomixTip: "Cook pasta in TM6: add 1L water and rigatoni. Cook 12 min/100\u00b0C/speed 2/Reverse." },
+          { number: 2, title: "Get Prepped", instruction: "Peel and grate the garlic (or use a garlic press). Halve the cherry tomatoes. Slice the bacon into 2cm cubes.", important: "Wash hands after handling raw meat.", timerMinutes: null, thermomixTip: "Prep by hand for best results." },
+          { number: 3, title: "Start the Sauce", instruction: "Place a large pan over medium-high heat with a drizzle of oil. Fry the bacon until crispy, 3-4 mins. Add the tomatoes and garlic. Cook until softened, 4-5 mins. Stir the pesto and creme fraiche into the pan. Add the pasta and stir to coat. Remove from heat and season with salt and pepper.", important: "Cook bacon thoroughly.", timerMinutes: 5, thermomixTip: "Fry bacon in a pan for best crispness. Add to TM6 with tomatoes, pesto and creme fraiche: mix 30 sec/speed 2." },
+          { number: 4, title: "Garnish and Serve", instruction: "Divide the pesto bacon pasta between plates. Garnish with a sprinkling of cheese.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "sticky-korean-chicken-stir-fry",
+        name: "Sticky Korean Style Chicken Stir-fry",
+        subtitle: "with pepper, onion and jasmine rice",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "chicken", "rice", "quick"],
+        source: "HelloFresh W50",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Grater", "Pot with lid"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } },
+          { name: "Lime", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit" } },
+          { name: "Ketjap Manis", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Gochujang Paste", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Honey", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Sesame Seeds", category: "Pantry & Dry Goods", amounts: { "2": "21 g", "4": "21 g" } },
+          { name: "Ketchup", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Boil the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover and cook 12 mins. Remove from heat, keep covered 12 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 12 mins." },
+          { number: 2, title: "Prep the Veg", instruction: "Halve the bell pepper, discard core and seeds, chop into 2cm chunks. Halve, peel and chop the onion into 2cm chunks. Peel and grate the garlic.", important: null, timerMinutes: null },
+          { number: 3, title: "Start Frying", instruction: "Place a pan over medium-high heat with oil. Add the chicken, bell pepper, garlic and onion. Season with salt and pepper. Fry until chicken is golden and veg softened, 8-10 mins.", important: "Wash hands after handling raw chicken. Chicken is cooked when no longer pink.", timerMinutes: 9, thermomixTip: "Pan-fry for best browning \u2014 TM6 won\u2019t give the same sear." },
+          { number: 4, title: "Quarter the Lime", instruction: "Quarter the lime.", important: null, timerMinutes: null },
+          { number: 5, title: "Add the Flavourings", instruction: "Remove from heat. Stir in the ketjap manis, gochujang paste, honey and ketchup. Squeeze in lime juice from one wedge (per 2P). Add a splash of water to loosen if needed. Season with salt, pepper and lime juice.", important: null, timerMinutes: null },
+          { number: 6, title: "Dish Up", instruction: "Share the rice between bowls. Serve the Korean style chicken alongside. Sprinkle with sesame seeds and serve with remaining lime wedges.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "asian-inspired-spiced-beef",
+        name: "Asian-Inspired Spiced Beef",
+        subtitle: "with bell pepper, coriander and pak choi",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "beef", "rice", "quick"],
+        source: "HelloFresh #16",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Water", "Salt", "Pepper", "Oil"],
+        cookingTools: ["Grater", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Irish Beef Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g", "6": "720 g" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Ginger", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Pak Choi", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "3 units" } },
+          { name: "Ketjap Manis", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Red Thai Style Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 12 mins. Remove from heat, keep covered 12 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 12 mins." },
+          { number: 2, title: "Get Prepped", instruction: "Halve the bell pepper, remove core and seeds, thinly slice. Trim and thinly slice the pak choi widthways. Peel and grate the ginger. Roughly chop the coriander (stalks and all).", important: null, timerMinutes: null, thermomixTip: "Chop veg in TM6: speed 5/3 seconds each." },
+          { number: 3, title: "Fry the Mince", instruction: "Place a pan over medium-high heat (no oil). Add the mince and fry until browned, 5-6 mins. Break up with a spoon as it cooks.", important: "Wash hands after handling raw mince. Mince is cooked when no longer pink.", timerMinutes: 6, thermomixTip: "Brown mince in a pan for best results." },
+          { number: 4, title: "Add the Veg", instruction: "Add the bell pepper with a drizzle of oil. Cook until softened, 4-5 mins. Add the Thai spice and ginger, fry until fragrant, 1 min. Add the stock and 75ml water (per 2P). Stir in the pak choi. Simmer until liquid has reduced by half and pak choi is tender, 3-4 mins.", important: null, timerMinutes: 5, thermomixTip: "Continue cooking in pan for best results." },
+          { number: 5, title: "Season the Sauce", instruction: "Stir through the red Thai paste, ketjap manis and half the coriander. Remove from heat and season with salt and pepper. Fluff up the rice.", important: null, timerMinutes: null, tip: "Add a splash of water if the mince is too dry." },
+          { number: 6, title: "Finish and Serve", instruction: "Divide rice between bowls. Top with the Asian-inspired mince. Finish with remaining coriander.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "prawn-thai-coconut-soup",
+        name: "Prawn Thai Coconut Soup",
+        subtitle: "with mushrooms and carrot",
+        prepTime: "20-25 mins",
+        tags: ["spicy", "seafood", "soup", "quick"],
+        source: "HelloFresh #24",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Water", "Salt", "Pepper", "Oil"],
+        cookingTools: ["Large pot"],
+        ingredients: [
+          { name: "Prawns", category: "Meat & Fish", amounts: { "2": "160 g", "4": "320 g", "6": "480 g" } },
+          { name: "Mushrooms", category: "Fresh Veg & Herbs", amounts: { "2": "140 g", "4": "250 g", "6": "400 g" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Red Thai Style Paste", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Lemon", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Scallion", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Coconut Milk", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Udon Noodles", category: "Pantry & Dry Goods", amounts: { "2": "440 g", "4": "880 g", "6": "1320 g" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Boil 500ml water (per 2P) in a pot or kettle. Roughly chop the mushrooms. Trim the carrot, halve lengthways, chop into 1cm wide, 5cm long batons. Trim and thinly slice the scallion. Quarter the lemon. Stir the coconut milk to dissolve any lumps.", important: null, timerMinutes: null, thermomixTip: "Chop mushrooms in TM6: speed 5/3 seconds. Prep carrot and scallion by hand." },
+          { number: 2, title: "Soften the Veg", instruction: "Place a large pot over medium-high heat with oil. Fry the mushrooms and carrot until softened, 3-4 mins. Season with salt and pepper. Add the red Thai paste and Thai spice mix. Cook until fragrant, 1-2 mins.", important: null, timerMinutes: 4, thermomixTip: "Saut\u00e9 in TM6: 4 min/Varoma/speed 1/Reverse. Add spices, cook 1 min more." },
+          { number: 3, title: "Simmer the Soup", instruction: "Add the prawns, coconut milk, stock and boiling water. Bring to boil, then simmer 8-10 mins. Gently separate the noodles and add for the final 1 min. Add more water for desired consistency.", important: "Wash hands after handling raw prawns. Prawns are cooked when pink outside and opaque inside.", timerMinutes: 9, thermomixTip: "Add all liquids and prawns to TM6. Cook 9 min/100\u00b0C/speed 1/Reverse. Add noodles for final minute." },
+          { number: 4, title: "Finish and Serve", instruction: "Divide the soup between bowls. Season with lemon juice, salt and pepper. Finish with sliced scallion. Serve remaining lemon wedges alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "maple-miso-pulled-pork-bao",
+        name: "Maple and Miso Pulled Pork Bao Buns",
+        subtitle: "with roast potatoes and cucumber side",
+        prepTime: "35-40 mins",
+        tags: ["pork", "bao"],
+        source: "HelloFresh #36",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Aluminium foil", "Baking sheet", "Grater", "Oven dish"],
+        ingredients: [
+          { name: "Irish Pulled Pork", category: "Meat & Fish", amounts: { "2": "300 g", "4": "600 g" } },
+          { name: "Cucumber", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g" } },
+          { name: "Apple Cider Vinegar", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Bao Buns", category: "Pantry & Dry Goods", amounts: { "2": "6 units", "4": "12 units" } },
+          { name: "Miso Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1 sachet" } },
+          { name: "Maple Syrup", category: "Sauces & Condiments", amounts: { "2": "30 g", "4": "30 g" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Baby Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "500 g", "4": "1000 g" } },
+          { name: "Ginger", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Potatoes", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Quarter the potatoes. Pop onto a baking tray, drizzle with oil, season with salt and pepper. Roast on top shelf until golden, 25-30 mins. Turn halfway.", important: null, timerMinutes: 28, thermomixTip: "Roast potatoes in oven \u2014 TM6 can\u2019t replicate this." },
+          { number: 2, title: "Cook the Pork", instruction: "Peel and grate the garlic and ginger. Remove packaging from pork, pop into an oven dish. Spread ginger and garlic over the pork. Cover with foil and cook on middle shelf, 25-30 mins. Once cooked, add miso paste and maple syrup. Pull apart with two forks.", important: "Ensure the pork is piping hot throughout.", timerMinutes: 28, thermomixTip: "Steam pork in Varoma: 500ml water in bowl, pork in Varoma dish. 25 min/Varoma/speed 2. Then shred and mix with miso and maple." },
+          { number: 3, title: "Prep the Veg", instruction: "Trim the cucumber and bash with a rolling pin. Chop into 2cm chunks. Roughly chop the coriander. Toss cucumber with soy sauce, vinegar, coriander and \u00bd tsp sugar (per 2P). Microwave bao buns covered for 1 min (3 at a time).", important: null, timerMinutes: null, tip: "No microwave? Steam bao over boiling water for 3-4 mins.", thermomixTip: "Steam bao in TM6 Varoma: 4 min/Varoma/speed 2." },
+          { number: 4, title: "Finish and Serve", instruction: "Fill bao buns with miso pork and smashed cucumber. Serve with potatoes and remaining cucumber alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "creamy-chicken-pasta-bake",
+        name: "Creamy Chicken Pasta Bake",
+        subtitle: "with parsley and bell pepper",
+        prepTime: "45-50 mins",
+        tags: ["chicken", "pasta", "bake"],
+        source: "HelloFresh #1",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Water", "Oil", "Pepper", "Salt"],
+        cookingTools: ["Colander", "Oven dish"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g", "6": "780 g" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Parsley", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Dried Rigatoni", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g", "6": "540 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "85 g", "4": "170 g", "6": "175 g" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "40 g", "4": "80 g", "6": "120 g" } },
+          { name: "Passata", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Dried Thyme", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Boil a large pot of salted water. Halve the bell pepper, discard core and seeds, slice into thin strips. Roughly chop the parsley.", important: null, timerMinutes: null },
+          { number: 2, title: "Brown the Chicken", instruction: "Place a pan over medium-high heat with oil. Add the chicken and bell pepper. Season with salt and pepper. Cook until chicken is browned, 5-6 mins.", important: "Wash hands after handling raw chicken.", timerMinutes: 6, thermomixTip: "Saut\u00e9 in TM6: 6 min/Varoma/Reverse/speed 1." },
+          { number: 3, title: "Cook the Pasta", instruction: "Add the pasta to boiling water. Cook until softened, 10-12 mins. Drain in a colander and return to pot.", important: null, timerMinutes: 11 },
+          { number: 4, title: "Simmer the Sauce", instruction: "Add the dried thyme, stock, 25ml water (per 2P) and passata to the pan with chicken. Bring to boil, reduce heat. Simmer until sauce thickens and chicken is cooked, 12-15 mins.", important: "Chicken is cooked when no longer pink.", timerMinutes: 14, tip: "Add a splash of water if too dry.", thermomixTip: "Add sauce ingredients to TM6. Cook 14 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Bake the Pasta", instruction: "Mix pasta, creme fraiche, chicken sauce and half the parsley. Season with salt and pepper. Transfer to an oven dish, sprinkle over the cheese. Bake on top shelf until golden, 10-12 mins.", important: null, timerMinutes: 11 },
+          { number: 6, title: "Finish and Serve", instruction: "Divide the pasta bake between bowls. Finish with remaining parsley.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "cheesy-crusted-hake",
+        name: "Cheesy Crusted Hake",
+        subtitle: "with honey roast carrots and parsley butter potatoes",
+        prepTime: "20-25 mins",
+        tags: ["fish", "quick"],
+        source: "HelloFresh #3",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Butter", "Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Baking sheet", "Baking paper", "Colander", "Pot with lid"],
+        ingredients: [
+          { name: "Hake", category: "Meat & Fish", amounts: { "2": "252 g", "4": "500 g", "6": "756 g" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Baby Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "500 g", "4": "1000 g", "6": "1500 g" } },
+          { name: "Breadcrumbs", category: "Pantry & Dry Goods", amounts: { "2": "1 sachet", "4": "1 pack", "6": "2 packs" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "20 g", "4": "40 g", "6": "60 g" } },
+          { name: "Italian Herbs", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1.5 sachets", "6": "2 sachets" } },
+          { name: "Mayo", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "5 sachets" } },
+          { name: "Honey", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1 sachet", "6": "2 sachets" } },
+          { name: "Parsley", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Sweet Chilli Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1 sachet", "6": "2 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Carrots", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Boil a pot of salted water. Trim the carrot, halve lengthways, chop into batons. Pop onto a lined baking tray with oil, salt and pepper. Roast 18-20 mins, turning halfway.", important: null, timerMinutes: 19 },
+          { number: 2, title: "Boil the Potatoes", instruction: "Halve the baby potatoes. Add to boiling water, lower heat and cook until fork tender, 15-20 mins. Drain and return to pot, cover to keep warm.", important: null, timerMinutes: 17, tip: "Boil water in kettle if in a hurry.", thermomixTip: "Steam potatoes in Varoma: 500ml water in bowl, potatoes in Varoma. 20 min/Varoma/speed 2." },
+          { number: 3, title: "Make the Crumb", instruction: "Mix breadcrumbs, cheese, half a sachet of Italian herbs (per 2P) and 1 tbsp oil. Season with salt and pepper. Pat hake dry with kitchen paper. Spread mayo over the top. Press breadcrumb mixture onto the fish.", important: "Wash hands after handling raw fish.", timerMinutes: null },
+          { number: 4, title: "Bake the Hake", instruction: "Place crumbed hake on a separate lined baking tray. Bake on middle shelf until crumb is golden and fish is cooked, 11-15 mins.", important: "Fish is cooked when opaque in the middle.", timerMinutes: 13 },
+          { number: 5, title: "Finishing Touches", instruction: "Roughly chop the parsley. Add parsley and 1 tbsp butter (per 2P) to potatoes. Toss until butter melts. Season. Drizzle honey over the roasted carrots.", important: null, timerMinutes: null },
+          { number: 6, title: "Serve and Enjoy", instruction: "Share the cheesy hake between plates. Serve honeyed carrots and parsley butter potatoes alongside. Add a dollop of aioli and drizzle sweet chilli sauce over the hake.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "sticky-honey-beef-rice-bowl",
+        name: "Sticky Honey Beef Rice Bowl",
+        subtitle: "with green beans",
+        prepTime: "20-25 mins",
+        tags: ["beef", "rice", "quick"],
+        source: "HelloFresh #30",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Grater", "Pot with lid"],
+        ingredients: [
+          { name: "Irish Beef Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g", "6": "720 g" } },
+          { name: "Green Beans", category: "Fresh Veg & Herbs", amounts: { "2": "100 g", "4": "200 g", "6": "300 g" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Lime", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Ginger", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Ketjap Manis", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Honey", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Thai Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "5 sachets" } },
+          { name: "Coleslaw Mix", category: "Fresh Veg & Herbs", amounts: { "2": "120 g", "4": "240 g", "6": "360 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Boil the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 12 mins. Remove from heat, keep covered 12 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 12 mins." },
+          { number: 2, title: "Start Frying", instruction: "Trim the green beans. Place a pan over medium-high heat (no oil). Fry the mince, Thai spice mix and green beans until browned, 5-6 mins. Break up with a spoon.", important: "Wash hands after handling raw mince. Mince is cooked when no longer pink.", timerMinutes: 6, thermomixTip: "Brown mince in pan for best sear." },
+          { number: 3, title: "Add the Coleslaw Mix", instruction: "Add the coleslaw mix to the mince. Cook until just tender, 2-3 mins.", important: null, timerMinutes: 3 },
+          { number: 4, title: "Prep the Rest", instruction: "Peel and grate the garlic and ginger. Quarter the lime. Stir in garlic and ginger, cook until fragrant, 1-2 mins.", important: null, timerMinutes: 2, thermomixTip: "Grate garlic and ginger in TM6: speed 7/3 seconds." },
+          { number: 5, title: "Finishing Touches", instruction: "Stir the ketjap manis, honey, soy sauce and 50ml water (per 2P) into the pan. Cook until sauce thickens, 2-3 mins. Season with salt, pepper and lime juice.", important: null, timerMinutes: 3, tip: "If honey has hardened, pop it in hot water for 1 min." },
+          { number: 6, title: "Divide and Serve", instruction: "Share the rice between bowls. Top with the sticky honey mince. Serve with lime wedges for squeezing over.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "pork-rigatoni-tomato-sauce",
+        name: "Pork Rigatoni in Rich Tomato Sauce",
+        subtitle: "with spinach and sprinkled cheese",
+        prepTime: "20-25 mins",
+        tags: ["pork", "pasta", "quick"],
+        source: "HelloFresh #2",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Oil", "Salt", "Pepper", "Water", "Butter"],
+        cookingTools: ["Colander", "Grater"],
+        ingredients: [
+          { name: "Irish Pork Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g" } },
+          { name: "Dried Rigatoni", category: "Pantry & Dry Goods", amounts: { "2": "180 g", "4": "360 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } },
+          { name: "Italian Herbs", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Worcester Sauce", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "2 sachets" } },
+          { name: "Chopped Tomatoes with Onion & Garlic", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Grated Cheese", category: "Dairy & Eggs", amounts: { "2": "50 g", "4": "100 g" } },
+          { name: "Baby Spinach", category: "Fresh Veg & Herbs", amounts: { "2": "50 g", "4": "120 g" } },
+          { name: "Red Wine Jus", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Pasta", instruction: "Boil a large pot of salted water. Add the rigatoni, cook 10-12 mins. Drain in a colander and return to pot. Drizzle with oil.", important: null, timerMinutes: 11, thermomixTip: "Cook pasta in TM6: 1L water, 12 min/100\u00b0C/speed 2/Reverse." },
+          { number: 2, title: "Fry the Mince", instruction: "Finely chop the onion. Grate the garlic. Place a pan over medium-high heat with oil. Fry the mince and onion until browned, 5-6 mins. Break up with a spoon. Season.", important: "Wash hands after handling raw mince. Pork is cooked when no longer pink.", timerMinutes: 6, thermomixTip: "Brown mince in pan for best results." },
+          { number: 3, title: "Simmer the Sauce", instruction: "Stir in garlic and half the Italian herbs. Cook 1 min. Add Worcester sauce, chopped tomatoes and \u00bd tsp sugar (per 2P). Simmer until thickened, 5-6 mins.", important: null, timerMinutes: 6, tip: "Add water if too thick." },
+          { number: 4, title: "Wilt the Spinach", instruction: "Add spinach a handful at a time. Cook until wilted, 1-2 mins.", important: null, timerMinutes: 2 },
+          { number: 5, title: "Finishing Touches", instruction: "Stir in drained pasta, red wine jus, a knob of butter and half the cheese. Season with salt and pepper.", important: null, timerMinutes: null },
+          { number: 6, title: "Sprinkle and Serve", instruction: "Divide the pasta between bowls. Finish with remaining cheese.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "quick-chilli-con-carne",
+        name: "Quick Chilli con Carne",
+        subtitle: "with kidney beans and fluffy rice",
+        prepTime: "20-25 mins",
+        tags: ["beef", "spicy", "rice", "quick"],
+        source: "HelloFresh #31",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Water", "Salt", "Pepper", "Oil"],
+        cookingTools: ["Grater", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Irish Beef Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g" } },
+          { name: "Ground Cumin", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Red Kidney Beans", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Mexican Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Chopped Tomatoes with Onion & Garlic", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Dried Chilli Flakes", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "2 sachets" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } },
+          { name: "Grated Cheese", category: "Dairy & Eggs", amounts: { "2": "50 g", "4": "100 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Make the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 10 mins. Remove from heat, keep covered 10 mins.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 10 mins." },
+          { number: 2, title: "Fry the Mince", instruction: "Halve the bell pepper, discard core and seeds, slice into strips. Grate the garlic. Drain and rinse the kidney beans. Fry the mince in a pan (no oil) until browned, 5-6 mins. Break up with a spoon.", important: "Wash hands after handling raw mince.", timerMinutes: 6, thermomixTip: "Brown mince in pan for best sear." },
+          { number: 3, title: "Simmer the Sauce", instruction: "Add garlic and bell pepper (with oil if needed), cook 2 mins. Add cumin, Mexican spice, chopped tomatoes and beans. Stir in stock, \u00bd tsp sugar and 75ml water (per 2P). Bring to boil, then simmer 8-10 mins until thick.", important: "Mince is cooked when no longer pink.", timerMinutes: 9 },
+          { number: 4, title: "Finish and Serve", instruction: "Season with salt and pepper. Stir in chilli flakes to taste. Fluff up the rice. Share between bowls. Top with chilli con carne and sprinkle with cheese.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "rich-tahini-pulled-pork",
+        name: "Rich Tahini Pulled Pork",
+        subtitle: "with roasted butternut",
+        prepTime: "35-40 mins",
+        tags: ["pork"],
+        source: "HelloFresh #24",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Sugar", "Pepper", "Oil"],
+        cookingTools: ["Baking tray", "Baking paper", "Grater", "Oven dish"],
+        ingredients: [
+          { name: "Diced Butternut Squash", category: "Fresh Veg & Herbs", amounts: { "2": "400 g", "4": "600 g", "6": "900 g" } },
+          { name: "Irish Pulled Pork", category: "Meat & Fish", amounts: { "2": "300 g", "4": "600 g", "6": "900 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Cucumber", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Tomato", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "3 cloves", "6": "3 cloves" } },
+          { name: "Middle Eastern Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Yoghurt", category: "Dairy & Eggs", amounts: { "2": "75 g", "4": "150 g", "6": "225 g" } },
+          { name: "Tahini", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Parsley", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Butternut", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Pop butternut onto a lined baking tray. Drizzle with oil, season with half the Middle Eastern spice, salt and pepper. Roast 18-20 mins, turning halfway.", important: null, timerMinutes: 19, thermomixTip: "Roast butternut in oven for best caramelisation." },
+          { number: 2, title: "Pull the Pork", instruction: "Remove packaging, pop pork into oven dish. Cover with foil, cook on middle shelf 25-30 mins. Pull apart with two forks.", important: "Ensure pork is piping hot throughout.", timerMinutes: 28, thermomixTip: "Steam pork in Varoma: 500ml water, 25 min/Varoma/speed 2. Then shred." },
+          { number: 3, title: "Prep the Rest", instruction: "Trim cucumber, quarter lengthways, chop into small pieces. Cut tomato into 2cm chunks. Halve, peel and thinly slice the onion. Chop the parsley. Grate the garlic.", important: null, timerMinutes: null },
+          { number: 4, title: "Time to Fry", instruction: "Place a pan over medium-high heat with oil. Fry the onion and remaining Middle Eastern spice until softened, 4-5 mins. Add the pulled pork, cook 2-3 mins. Season with salt and pepper.", important: null, timerMinutes: 5 },
+          { number: 5, title: "Make the Drizzle", instruction: "Mix yoghurt, garlic and tahini. Season with salt and pepper. Toss cucumber, parsley and tomato with half the yoghurt tahini dressing. Season.", important: null, timerMinutes: null },
+          { number: 6, title: "Dish Up", instruction: "Arrange the salad and butternut between plates. Top with pulled pork. Drizzle remaining yoghurt tahini over the top.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "mexican-chicken-empanadas",
+        name: "Mexican Spiced Chicken Empanadas",
+        subtitle: "with fresh sweetcorn side salad",
+        prepTime: "45-50 mins",
+        tags: ["chicken"],
+        source: "HelloFresh #5",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Sugar", "Oil", "Salt", "Pepper", "Milk"],
+        cookingTools: ["Grater", "Pan with lid", "Sieve"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves" } },
+          { name: "Salad Leaves", category: "Fresh Veg & Herbs", amounts: { "2": "1 bag", "4": "1 bag" } },
+          { name: "Sweetcorn", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units" } },
+          { name: "Passata", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Mexican Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Red Wine Vinegar", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Puff Pastry", category: "Pantry & Dry Goods", amounts: { "2": "1 unit", "4": "2 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Prep the Veg", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Finely chop the onion. Grate the garlic. Drain the sweetcorn.", important: null, timerMinutes: null, tip: "Keep pastry in fridge until step 5." },
+          { number: 2, title: "Soften the Veg", instruction: "Place a pan over medium-high heat with oil. Add onion, garlic and \u00bd tsp sugar (per 2P). Cook 2-3 mins, season with salt. Add passata, Mexican spice and stock. Stir, 30 secs.", important: null, timerMinutes: 3 },
+          { number: 3, title: "Cook the Chicken", instruction: "Chop chicken into smaller cubes and add to pan. Lower heat, cover and simmer until sauce thickens, 3-5 mins. Season. Remove from heat and let cool uncovered for 10 mins.", important: "Wash hands after handling raw chicken.", timerMinutes: 5 },
+          { number: 4, title: "Dress the Salad", instruction: "Mix the vinegar with a drizzle of oil. Season. Just before serving, add sweetcorn and salad leaves and toss.", important: null, timerMinutes: null },
+          { number: 5, title: "Bake the Empanadas", instruction: "Roll out pastry, cut into 4 equal rectangles (per 2P). Moisten edges with water, place filling in centre. Fold into triangles, seal edges with a fork. Place on lined baking tray, brush with milk. Bake until golden, 18-20 mins.", important: "Chicken is cooked when no longer pink.", timerMinutes: 19 },
+          { number: 6, title: "Finish and Serve", instruction: "Divide salad between plates. Arrange empanadas alongside.", important: null, timerMinutes: null, tip: "Serve leftover filling as an accompaniment." }
+        ]
+      },
+      {
+        id: "paprika-chicken-burger",
+        name: "Paprika Chicken Burger and Herby Potatoes",
+        subtitle: "with pesto aioli",
+        prepTime: "20-25 mins",
+        tags: ["chicken", "burger", "quick"],
+        source: "HelloFresh #3",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water", "Butter"],
+        cookingTools: ["Colander", "Pot with lid"],
+        ingredients: [
+          { name: "Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "220 g", "4": "640 g", "6": "960 g" } },
+          { name: "Baby Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "500 g", "4": "1000 g", "6": "1500 g" } },
+          { name: "Green Pesto", category: "Sauces & Condiments", amounts: { "2": "30 g", "4": "60 g", "6": "90 g" } },
+          { name: "Brioche Buns", category: "Pantry & Dry Goods", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Dried Oregano", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1.5 sachets", "6": "3 sachets" } },
+          { name: "Paprika", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "3 sachets", "6": "3 sachets" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Potatoes", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Boil a pot of salted water. Halve the potatoes. Cook until fork tender, 15-20 mins. Drain, mix in butter and half the oregano. Season.", important: null, timerMinutes: 17, thermomixTip: "Steam potatoes in Varoma: 20 min/Varoma/speed 2." },
+          { number: 2, title: "Prep the Chicken", instruction: "Place hand flat on chicken breast. Slice through horizontally to make two thin steaks. Season with paprika, salt and pepper.", important: "Wash hands after handling raw chicken.", timerMinutes: null },
+          { number: 3, title: "Fry the Chicken", instruction: "Place a pan over medium-high heat with oil. Fry the chicken until cooked through, 3-6 mins each side.", important: "Chicken is cooked when no longer pink.", timerMinutes: 8, tip: "Cook in batches if pan is crowded.", thermomixTip: "Pan-fry for best results \u2014 TM6 won\u2019t give the sear." },
+          { number: 4, title: "Make the Pesto Aioli", instruction: "Thinly slice the onion. Mix aioli and pesto in a small bowl. Season.", important: null, timerMinutes: null },
+          { number: 5, title: "Warm the Buns", instruction: "Pop the buns in the oven until warmed through, 2-3 mins.", important: null, timerMinutes: 3 },
+          { number: 6, title: "Assemble and Serve", instruction: "Spread pesto aioli on each bun. Top with onion slices and chicken. Sandwich closed. Serve herby potatoes alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "creamy-pesto-bacon-pasta-beans",
+        name: "Creamy Pesto and Bacon Pasta",
+        subtitle: "with cheese and green beans",
+        prepTime: "20-25 mins",
+        tags: ["pasta", "pork", "quick"],
+        source: "HelloFresh W06",
+        servings: { default: 2, options: [2, 4] },
+        pantryItems: ["Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Colander"],
+        ingredients: [
+          { name: "Irish Bacon Lardons", category: "Meat & Fish", amounts: { "2": "1 pack", "4": "2 packs" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "1 clove", "4": "2 cloves" } },
+          { name: "Green Pesto", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Dried Rigatoni", category: "Pantry & Dry Goods", amounts: { "2": "200 g", "4": "400 g" } },
+          { name: "Creme Fraiche", category: "Dairy & Eggs", amounts: { "2": "1 sachet", "4": "2 sachets" } },
+          { name: "Green Beans", category: "Fresh Veg & Herbs", amounts: { "2": "1 pack", "4": "2 packs" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rigatoni", instruction: "Boil a large pot of salted water. Add the rigatoni, cook 10-12 mins. Drain in a colander, return to pot. Drizzle with oil.", important: null, timerMinutes: 11, tip: "Boil water in kettle if in a hurry.", thermomixTip: "Cook pasta in TM6: 1L water, 12 min/100\u00b0C/speed 2/Reverse." },
+          { number: 2, title: "Get Prepped", instruction: "Grate the garlic. Trim the green beans and chop into thirds. Slice the bacon into 2cm cubes.", important: "Wash hands after handling raw meat.", timerMinutes: null },
+          { number: 3, title: "Start the Sauce", instruction: "Place a pan over medium-high heat with oil. Fry the bacon until crispy, 3-4 mins. Add green beans and garlic, cook 4-5 mins. Stir in pesto and creme fraiche. Add the pasta, stir to coat. Remove from heat, season.", important: "Cook bacon thoroughly.", timerMinutes: 5, thermomixTip: "Fry bacon in pan for best crispness." },
+          { number: 4, title: "Garnish and Serve", instruction: "Divide the pesto bacon pasta between plates. Garnish with cheese.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "moroccan-spiced-lentil-stew",
+        name: "Moroccan Spiced Lentil Stew",
+        subtitle: "with chickpeas and toasted baguette",
+        prepTime: "30-35 mins",
+        tags: ["vegetarian", "veggie", "spicy", "stew"],
+        source: "HelloFresh #7",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Water", "Oil", "Salt", "Pepper", "Sugar"],
+        cookingTools: ["Sieve"],
+        ingredients: [
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chickpeas", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Ras-el-Hanout", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Chopped Tomatoes with Onion & Garlic", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Tomato Paste", category: "Sauces & Condiments", amounts: { "2": "1 tin", "4": "2 tins", "6": "3 tins" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Lentils", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Baguette", category: "Pantry & Dry Goods", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Yoghurt", category: "Dairy & Eggs", amounts: { "2": "100 g", "4": "200 g", "6": "330 g" } },
+          { name: "Harissa Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Ground Cumin", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Halve, peel and thinly slice the onion. Drain and rinse the chickpeas and lentils. Roughly chop the coriander.", important: null, timerMinutes: null },
+          { number: 2, title: "Fry the Veg", instruction: "Place a large pot over medium-high heat with oil. Fry the onion until softened, 4-5 mins. Add the ras-el-hanout, season with salt and cook 1 min more.", important: null, timerMinutes: 5, thermomixTip: "Saut\u00e9 onion in TM6: 5 min/120\u00b0C/speed 1. Add spice, cook 1 min more." },
+          { number: 3, title: "Start the Stew", instruction: "Add chopped tomatoes, cumin and tomato paste. Pour in 350ml water (per 2P) and the stock. Stir and bring to boil.", important: null, timerMinutes: null },
+          { number: 4, title: "Simmer the Stew", instruction: "Add lentils and chickpeas. Bring back to boil, lower heat and simmer until slightly thickened, 12-15 mins. Stir occasionally. Stir through harissa paste. Season with salt, pepper and sugar.", important: null, timerMinutes: 14, thermomixTip: "Add all stew ingredients to TM6. Cook 15 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Warm the Bread", instruction: "Pop the baguettes into the oven to warm through, 2-3 mins.", important: null, timerMinutes: 3 },
+          { number: 6, title: "Finish and Serve", instruction: "Spoon the stew into bowls. Top with coriander and a dollop of yoghurt. Tear off baguette chunks for mopping up.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "chipotle-chicken-burrito-bowl",
+        name: "Chipotle Chicken Burrito Bowl",
+        subtitle: "with smashed avocado and black beans",
+        prepTime: "25-30 mins",
+        tags: ["spicy", "chicken", "rice"],
+        source: "HelloFresh #54",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Water", "Oil"],
+        cookingTools: ["Pot with lid", "Sieve", "Zester"],
+        ingredients: [
+          { name: "Diced Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "260 g", "4": "520 g", "6": "780 g" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Black Beans", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Chipotle Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Smashed Avocado", category: "Fresh Veg & Herbs", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Tomato", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Lime", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Coriander", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "2 units" } },
+          { name: "Mexican Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Sweetcorn", category: "Fresh Veg & Herbs", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 10 mins. Remove from heat, keep covered 10 mins.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 10 mins." },
+          { number: 2, title: "Get Prepped", instruction: "Chop the onion into small pieces. Cut tomato into 1cm chunks. Zest and quarter the lime. Drain and rinse black beans and sweetcorn. Halve the chilli, deseed and finely chop.", important: null, timerMinutes: null },
+          { number: 3, title: "Fry the Chicken", instruction: "Place a pan over medium-high heat with oil. Add chicken, Mexican spice, chilli and half the onion. Season. Fry until browned and cooked through, 8-10 mins.", important: "Wash hands after handling raw chicken. Chicken is cooked when no longer pink.", timerMinutes: 9, thermomixTip: "Pan-fry for best browning." },
+          { number: 4, title: "Make the Pico de Gallo", instruction: "Roughly chop the coriander. Mix tomato, coriander and remaining onion in a bowl. Season with salt, pepper and lime juice. Stir lime zest into cooked rice.", important: null, timerMinutes: null },
+          { number: 5, title: "Add the Beans", instruction: "Once chicken is cooked, add chipotle paste, sweetcorn and beans. Add a splash of water, cook 2-3 mins. Season.", important: null, timerMinutes: 3 },
+          { number: 6, title: "Garnish and Serve", instruction: "Divide lime rice between bowls. Top with chicken, corn and beans, smashed avocado and pico de gallo. Finish with lime juice.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "french-onion-soup",
+        name: "French Onion Soup",
+        subtitle: "with cheesy crostini",
+        prepTime: "30-35 mins",
+        tags: ["soup"],
+        source: "HelloFresh #10",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Salt", "Pepper", "Butter", "Water", "Sugar", "Oil"],
+        cookingTools: ["Baking sheet", "Baking paper", "Grater"],
+        ingredients: [
+          { name: "Onion", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Ciabatta", category: "Pantry & Dry Goods", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Grated Italian Style Hard Cheese", category: "Dairy & Eggs", amounts: { "2": "20 g", "4": "40 g", "6": "60 g" } },
+          { name: "Grated Cheese", category: "Dairy & Eggs", amounts: { "2": "50 g", "4": "100 g", "6": "150 g" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Thyme", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Worcester Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "White Wine Stock Powder", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Halve, peel and thinly slice the onion. Peel and grate the garlic.", important: null, timerMinutes: null },
+          { number: 2, title: "Cook the Onions", instruction: "Place a large pot over medium-low heat with a knob of butter. Add the onion, season and fry, stirring occasionally, until golden, 23-25 mins. Add 2 tsp sugar (per 2P) and cook until caramelised, 1-2 mins.", important: null, timerMinutes: 25, thermomixTip: "Caramelise onions in TM6: add butter and onions. Cook 25 min/120\u00b0C/Reverse/speed 1. Add sugar, cook 2 min more." },
+          { number: 3, title: "Slice the Ciabatta", instruction: "Cut the ciabatta into 1cm slices. Drizzle with oil and season with salt and pepper.", important: null, timerMinutes: null },
+          { number: 4, title: "Add the Flavour", instruction: "Stir garlic into the onion, fry 1 min. Stir in wine stock powder, cook 1-2 mins. Add 400ml water (per 2P) a little at a time, then stock, Worcester sauce and thyme. Bring to boil, reduce heat, simmer 3-4 mins.", important: null, timerMinutes: 4, thermomixTip: "Add garlic, wine powder, water, stock, Worcester and thyme to TM6. Cook 5 min/100\u00b0C/speed 1/Reverse." },
+          { number: 5, title: "Finishing Touches", instruction: "Place ciabatta on a lined baking tray, sprinkle with both cheeses. Cook until golden and cheese has melted, 3-5 mins. Season soup if needed.", important: null, timerMinutes: 4 },
+          { number: 6, title: "Dish Up", instruction: "Ladle the soup into bowls. Top with the cheesy ciabatta toasts.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "harissa-cannellini-bean-stew",
+        name: "Harissa Spiced Cannellini Bean Stew",
+        subtitle: "with garlic bread and golden halloumi",
+        prepTime: "20-25 mins",
+        tags: ["vegetarian", "veggie", "spicy", "stew", "quick"],
+        source: "HelloFresh #21",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Baking sheet", "Baking paper", "Grater", "Sieve"],
+        ingredients: [
+          { name: "Halloumi", category: "Dairy & Eggs", amounts: { "2": "200 g", "4": "400 g", "6": "600 g" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Cannellini Beans", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Parsley", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Harissa Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Chopped Tomatoes with Onion & Garlic", category: "Sauces & Condiments", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Baguette", category: "Pantry & Dry Goods", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Preheat oven to 220\u00b0C/200\u00b0C fan/gas 7. Grate the garlic. Halve the pepper, discard core and seeds, chop into 2cm chunks. Pop onto a lined baking tray with oil, salt and pepper. Roast 15-18 mins.", important: null, timerMinutes: 17 },
+          { number: 2, title: "Mash the Beans", instruction: "Drain and rinse the cannellini beans. Transfer one-third to a bowl and mash with a fork. Roughly chop the parsley. Drain halloumi, cut into slices (3 per person). Soak in cold water.", important: null, timerMinutes: null },
+          { number: 3, title: "Start the Stew", instruction: "Place a large pot over medium-high heat with oil. Stir in half the garlic, cook 1 min. Add chopped tomatoes and 50ml water (per 2P). Simmer 5 mins. Add whole and mashed beans, cook 5-6 mins.", important: null, timerMinutes: 6, tip: "Add water to loosen if necessary.", thermomixTip: "Add garlic, tomatoes and water to TM6. Cook 5 min/100\u00b0C/speed 1/Reverse. Add beans, cook 6 min more." },
+          { number: 4, title: "Make the Garlic Bread", instruction: "Mix remaining garlic and half the parsley with 1 tbsp oil. Halve the baguettes lengthways. Spread herby garlic oil over cut sides. Cut into triangles.", important: null, timerMinutes: null },
+          { number: 5, title: "Finish the Stew", instruction: "Add the roasted pepper, harissa paste and remaining parsley to the stew. Season. Bake garlic bread on baking tray, 2-3 mins. Pat halloumi dry, fry in a pan with oil until golden.", important: null, timerMinutes: 3, thermomixTip: "Fry halloumi in a pan for best golden crust." },
+          { number: 6, title: "Serve and Enjoy", instruction: "Spoon stew into bowls. Arrange halloumi on top. Serve garlicky baguette on the side.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "beef-in-tarragon-sauce",
+        name: "Beef in Tarragon Sauce",
+        subtitle: "with baby potatoes and salad",
+        prepTime: "40-45 mins",
+        tags: ["beef"],
+        source: "HelloFresh #42",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Egg", "Butter", "Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Baking tray", "Baking paper"],
+        ingredients: [
+          { name: "Irish Beef Rump", category: "Meat & Fish", amounts: { "2": "250 g", "4": "500 g", "6": "750 g" } },
+          { name: "Baby Potatoes", category: "Fresh Veg & Herbs", amounts: { "2": "400 g", "4": "800 g", "6": "1200 g" } },
+          { name: "Shallot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Tarragon", category: "Fresh Veg & Herbs", amounts: { "2": "5 g", "4": "10 g", "6": "15 g" } },
+          { name: "Salad Leaves", category: "Fresh Veg & Herbs", amounts: { "2": "1 bag", "4": "1 bag", "6": "1 bag" } },
+          { name: "Mustard", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "1 sachet", "6": "1 sachet" } },
+          { name: "Red Wine Vinegar", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Roast the Potatoes", instruction: "Preheat oven to 240\u00b0C/220\u00b0C fan/gas 9. Halve the potatoes, pop onto a lined baking tray. Drizzle with oil, season. Roast 25-35 mins.", important: null, timerMinutes: 30, thermomixTip: "Roast in oven for best results." },
+          { number: 2, title: "Get Prepped", instruction: "Chop the shallot into small pieces. Pick tarragon leaves and finely chop. Separate one egg yolk (per 2P) from the white.", important: null, timerMinutes: null, tip: "Use very fresh eggs as the yolk is used raw." },
+          { number: 3, title: "Make the Sauce", instruction: "Place a small pot over medium-high heat with 2 tbsp butter (per 2P). Cook the shallot 2-3 mins. Add tarragon, cook 2 mins. Remove from heat. Make a dressing with half the vinegar and oil. Toss salad leaves in dressing, season.", important: null, timerMinutes: 3 },
+          { number: 4, title: "Fry the Beef", instruction: "Place a large pan over high heat with oil. Season beef with salt and pepper. Fry until browned: 1-2 mins each side for medium-rare, longer if preferred. Transfer to a board and rest.", important: "Wash hands after handling raw meat.", timerMinutes: 4, thermomixTip: "Pan-fry beef for best sear \u2014 TM6 can\u2019t replicate this." },
+          { number: 5, title: "Finishing Touches", instruction: "Add egg yolk, half the mustard (per 2P) and remaining vinegar to the pot with shallot. Return to lowest heat and mix vigorously 2-3 mins until sauce thickens. Remove from heat, stir in 1 tbsp water (per 2P) and a drizzle of oil. Season.", important: null, timerMinutes: 3 },
+          { number: 6, title: "Serve and Enjoy", instruction: "Thinly slice the beef. Divide potatoes and sliced beef between plates. Pour tarragon sauce over the beef. Serve salad alongside.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "mexican-spiced-black-beans",
+        name: "Mexican Spiced Black Beans",
+        subtitle: "with chipotle aioli and BBQ sauce",
+        prepTime: "20-25 mins",
+        tags: ["vegetarian", "veggie", "spicy", "rice", "quick"],
+        source: "HelloFresh #19",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Butter", "Sugar", "Oil", "Salt", "Pepper", "Water"],
+        cookingTools: ["Pan with lid", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Black Beans", category: "Pantry & Dry Goods", amounts: { "2": "1 pack", "4": "2 packs", "6": "3 packs" } },
+          { name: "Bell Pepper", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Stock", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Mexican Style Spice Mix", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Chipotle Paste", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Grated Cheese", category: "Dairy & Eggs", amounts: { "2": "50 g", "4": "100 g", "6": "150 g" } },
+          { name: "Tomato Paste", category: "Sauces & Condiments", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "BBQ Sauce", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Scallion", category: "Fresh Veg & Herbs", amounts: { "2": "2 units", "4": "4 units", "6": "6 units" } },
+          { name: "Aioli", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Shallot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Boil the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 10 mins. Remove from heat, keep covered 10 mins.", important: null, timerMinutes: 10, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse." },
+          { number: 2, title: "Get Prepped", instruction: "Halve the bell pepper, discard core and seeds, chop into 2cm chunks. Halve, peel and thinly slice the shallot. Drain and rinse the black beans.", important: null, timerMinutes: null },
+          { number: 3, title: "Soften the Shallot", instruction: "Place a pan over medium-high heat with oil. Add shallot and bell pepper, cook 4-5 mins. Add Mexican spice, fry 1 min. Add tomato paste, beans, stock, \u00bd tsp sugar and 100ml water (per 2P). Cover and simmer 4-5 mins.", important: null, timerMinutes: 5, thermomixTip: "Saut\u00e9 shallot and pepper in TM6: 5 min/120\u00b0C/speed 1. Add remaining ingredients, cook 5 min/100\u00b0C/speed 1/Reverse." },
+          { number: 4, title: "Make the Chipotle Aioli", instruction: "Trim and thinly slice the scallion. Mix half the chipotle paste with the aioli.", important: null, timerMinutes: null },
+          { number: 5, title: "Melt the Cheese", instruction: "Remove pan from heat. Mix in remaining chipotle paste and a knob of butter. Add water if needed to loosen. Season. Scatter over the cheese, cover 1-2 mins to melt.", important: null, timerMinutes: 2 },
+          { number: 6, title: "Finish and Serve", instruction: "Fluff up rice, divide between bowls. Top with cheesy Mexican spiced veg. Drizzle with chipotle aioli and BBQ sauce. Scatter scallion over the top.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "prawn-fried-rice-chilli-crisp",
+        name: "Prawn Fried Rice with DIY Chilli Crisp",
+        subtitle: "in bulgogi sauce",
+        prepTime: "15-20 mins",
+        tags: ["seafood", "rice", "quick"],
+        source: "HelloFresh #18",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Egg", "Salt", "Pepper", "Oil", "Water"],
+        cookingTools: ["Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Prawns", category: "Meat & Fish", amounts: { "2": "130 g", "4": "300 g", "6": "450 g" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "2 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Sesame Oil", category: "Sauces & Condiments", amounts: { "2": "20 ml", "4": "40 ml", "6": "60 ml" } },
+          { name: "Chilli Oil", category: "Sauces & Condiments", amounts: { "2": "8 ml", "4": "16 ml", "6": "24 ml" } },
+          { name: "Peanuts", category: "Pantry & Dry Goods", amounts: { "2": "20 g", "4": "40 g", "6": "60 g" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Sesame Seeds", category: "Pantry & Dry Goods", amounts: { "2": "10 g", "4": "20 g", "6": "30 g" } },
+          { name: "Green Beans", category: "Fresh Veg & Herbs", amounts: { "2": "100 g", "4": "200 g", "6": "300 g" } },
+          { name: "Bulgogi Sauce", category: "Sauces & Condiments", amounts: { "2": "70 g", "4": "140 g", "6": "210 g" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice. Boil a large pot of salted water. Add rice, cook 12-15 mins. Drain and pop back in pot, cover with lid.", important: null, timerMinutes: 14, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse." },
+          { number: 2, title: "Get Prepped", instruction: "Grate the garlic. Halve the chilli, deseed and finely chop. Trim carrot, quarter lengthways, chop into small pieces. Trim the green beans. Chop or crush the peanuts.", important: null, timerMinutes: null },
+          { number: 3, title: "Time to Fry", instruction: "Place a large pan over high heat with oil. Add carrot and fry 5-6 mins. Add green beans, garlic and prawns, season. Cook 4-5 mins. Remove from heat.", important: "Wash hands after handling raw prawns. Prawns are cooked when pink and opaque.", timerMinutes: 6, thermomixTip: "Pan-fry for best results." },
+          { number: 4, title: "Make the Chilli Crisp", instruction: "Mix chilli oil, fresh chilli and peanuts in a small bowl. Set aside.", important: null, timerMinutes: null },
+          { number: 5, title: "Stir-fry the Rice", instruction: "Remove veg and prawns from pan. Return pan to medium-high heat. Beat 1 egg (per 2P), add to pan stirring constantly, 1-2 mins. Add rice, bulgogi sauce, prawns, veg, sesame oil and soy sauce. Cook 3-4 mins. Season.", important: null, timerMinutes: 4 },
+          { number: 6, title: "Divide and Serve", instruction: "Divide the prawn fried rice between plates. Scatter sesame seeds over. Top with DIY chilli crisp.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "chinese-ginger-pork-soup",
+        name: "Chinese Ginger Pork Soup",
+        subtitle: "with veg ribbons and fresh chilli",
+        prepTime: "20-25 mins",
+        tags: ["pork", "soup", "quick"],
+        source: "HelloFresh #25",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Water", "Salt", "Pepper"],
+        cookingTools: ["Grater", "Peeler"],
+        ingredients: [
+          { name: "Irish Pork Mince", category: "Meat & Fish", amounts: { "2": "240 g", "4": "480 g", "6": "720 g" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Mushrooms", category: "Fresh Veg & Herbs", amounts: { "2": "250 g", "4": "500 g", "6": "750 g" } },
+          { name: "Scallion", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chilli", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "1 clove", "4": "2 cloves", "6": "3 cloves" } },
+          { name: "Ginger", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Courgette", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Chicken Stock", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Sesame Oil", category: "Sauces & Condiments", amounts: { "2": "20 ml", "4": "40 ml", "6": "60 ml" } },
+          { name: "Sesame Seeds", category: "Pantry & Dry Goods", amounts: { "2": "10 g", "4": "20 g", "6": "30 g" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } }
+        ],
+        steps: [
+          { number: 1, title: "Get Prepped", instruction: "Halve the chilli, deseed and finely slice. Roughly chop the mushrooms. Trim and thinly slice the scallion. Peel and grate the garlic and ginger. Use a peeler to make long ribbons from the carrot and courgette, stopping at the core.", important: null, timerMinutes: null, thermomixTip: "Chop mushrooms in TM6: speed 5/3 seconds. Peel carrot and courgette ribbons by hand." },
+          { number: 2, title: "Fry the Mince", instruction: "Place a pan over medium heat (no oil). Fry the mince, garlic and ginger until browned, 5-6 mins. Break up with a spoon. Season with salt and pepper.", important: "Wash hands after handling raw mince. Mince is cooked when no longer pink.", timerMinutes: 6, thermomixTip: "Brown mince in a pan for best results." },
+          { number: 3, title: "Add the Veg", instruction: "Add the courgette, carrot and mushrooms. Cook until softened, 3-4 mins. Add soy sauce, sesame oil, stock and 400ml water (per 2P). Bring to boil and simmer 2-3 mins.", important: null, timerMinutes: 4 },
+          { number: 4, title: "Dish Up", instruction: "Divide the soup between bowls. Top with chilli, scallion and sesame seeds.", important: null, timerMinutes: null }
+        ]
+      },
+      {
+        id: "korean-fried-chicken",
+        name: "Korean Fried Chicken",
+        subtitle: "with rice and Asian salad",
+        prepTime: "30-35 mins",
+        tags: ["chicken", "rice"],
+        source: "HelloFresh #52",
+        servings: { default: 2, options: [2, 4, 6] },
+        pantryItems: ["Oil", "Salt", "Pepper", "Water", "Egg", "Sugar"],
+        cookingTools: ["Grater", "Pot with lid", "Sieve"],
+        ingredients: [
+          { name: "Irish Chicken Breast", category: "Meat & Fish", amounts: { "2": "320 g", "4": "640 g", "6": "960 g" } },
+          { name: "Cornflour", category: "Pantry & Dry Goods", amounts: { "2": "40 g", "4": "80 g", "6": "120 g" } },
+          { name: "Ginger", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } },
+          { name: "Garlic", category: "Fresh Veg & Herbs", amounts: { "2": "2 cloves", "4": "4 cloves", "6": "6 cloves" } },
+          { name: "Soy Sauce", category: "Sauces & Condiments", amounts: { "2": "2 sachets", "4": "4 sachets", "6": "6 sachets" } },
+          { name: "Gochujang Paste", category: "Sauces & Condiments", amounts: { "2": "1 sachet", "4": "2 sachets", "6": "3 sachets" } },
+          { name: "Sesame Seeds", category: "Pantry & Dry Goods", amounts: { "2": "10 g", "4": "20 g", "6": "30 g" } },
+          { name: "Jasmine Rice", category: "Pantry & Dry Goods", amounts: { "2": "150 g", "4": "300 g", "6": "450 g" } },
+          { name: "Cucumber", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "1 unit", "6": "2 units" } },
+          { name: "Radish", category: "Fresh Veg & Herbs", amounts: { "2": "120 g", "4": "250 g", "6": "375 g" } },
+          { name: "Carrot", category: "Fresh Veg & Herbs", amounts: { "2": "1 unit", "4": "2 units", "6": "3 units" } }
+        ],
+        steps: [
+          { number: 1, title: "Cook the Rice", instruction: "Rinse the rice. Pour 300ml cold salted water (per 2P) into a pot with lid. Stir in rice, bring to boil. Lower heat, cover, cook 12 mins. Remove from heat, keep covered 12 mins.", important: null, timerMinutes: 12, thermomixTip: "Cook rice in TM6: 12 min/100\u00b0C/speed 1/Reverse. Stand 12 mins." },
+          { number: 2, title: "Get Prepped", instruction: "Peel and grate the garlic and ginger. Trim and thinly slice the radish. Halve the cucumber, chop into batons. Trim carrot, halve lengthways, chop into batons.", important: null, timerMinutes: null },
+          { number: 3, title: "Prep the Chicken", instruction: "Put cornflour in a bowl with salt and pepper. Beat 1 egg (per 2P) in another bowl. Cut chicken into 2cm wide strips. Dip in egg, then coat in cornflour.", important: "Wash hands after handling raw chicken.", timerMinutes: null },
+          { number: 4, title: "Fry the Chicken", instruction: "Place a pan over high heat with enough oil to coat the bottom. Once hot, carefully lay in the chicken. Reduce to medium-high and fry until golden and cooked through, 8-10 mins total. Turn every 2-3 mins. Place on kitchen paper.", important: "Chicken is cooked when no longer pink.", timerMinutes: 9, tip: "Heat oil 2-3 mins before adding chicken.", thermomixTip: "Pan-fry only \u2014 TM6 can\u2019t replicate the crispy coating." },
+          { number: 5, title: "Make the Sauce and Salad", instruction: "Toss radish, cucumber, carrot and half the garlic with half the soy sauce. Place a small pot over medium-high heat with oil. Fry remaining garlic and ginger 1-2 mins. Add remaining soy sauce, gochujang and a pinch of sugar. Simmer 2-3 mins. Toss cooked chicken in the sauce with sesame seeds.", important: null, timerMinutes: 3 },
+          { number: 6, title: "Divide and Serve", instruction: "Divide rice and salad between plates. Top with the fried chicken.", important: null, timerMinutes: null }
+        ]
+      }
+    ];
+
+    /* ===== APP STATE ===== */
+    const state = {
+      currentView: 'browse',
+      selectedRecipes: new Set(),
+      currentRecipeId: null,
+      currentStep: 0,
+      servingSizes: {},
+      shoppingChecked: new Set(),
+      searchQuery: '',
+      activeFilters: new Set(),
+      timers: {},
+      wakeLock: null,
+      thermomixMode: false
+    };
+
+    /* ===== PERSISTENCE ===== */
+    function saveState() {
+      try {
+        localStorage.setItem('rp_selected', JSON.stringify([...state.selectedRecipes]));
+        localStorage.setItem('rp_servings', JSON.stringify(state.servingSizes));
+        localStorage.setItem('rp_checked', JSON.stringify([...state.shoppingChecked]));
+        localStorage.setItem('rp_thermomix', state.thermomixMode ? '1' : '0');
+      } catch(e) {}
+    }
+    function loadState() {
+      try {
+        const sel = JSON.parse(localStorage.getItem('rp_selected') || '[]');
+        sel.forEach(id => state.selectedRecipes.add(id));
+        state.servingSizes = JSON.parse(localStorage.getItem('rp_servings') || '{}');
+        const chk = JSON.parse(localStorage.getItem('rp_checked') || '[]');
+        chk.forEach(k => state.shoppingChecked.add(k));
+        state.thermomixMode = localStorage.getItem('rp_thermomix') === '1';
+      } catch(e) {}
+    }
+
+    /* ===== VIEW MANAGEMENT ===== */
+    function showView(name, recipeId) {
+      state.currentView = name;
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const cookingView = document.getElementById('cooking-view');
+      cookingView.classList.remove('active');
+
+      if (name === 'browse') {
+        document.getElementById('browse-view').classList.add('active');
+        updateBottomBar();
+      } else if (name === 'detail') {
+        state.currentRecipeId = recipeId;
+        document.getElementById('detail-view').classList.add('active');
+        renderDetailView(recipeId);
+        updateBottomBar();
+        window.scrollTo(0, 0);
+      } else if (name === 'shopping') {
+        document.getElementById('shopping-view').classList.add('active');
+        renderShoppingView();
+        document.getElementById('bottom-bar').classList.remove('visible');
+        window.scrollTo(0, 0);
+      } else if (name === 'cooking') {
+        state.currentRecipeId = recipeId;
+        state.currentStep = 0;
+        cookingView.classList.add('active');
+        renderCookingView();
+        requestWakeLock();
+        document.getElementById('bottom-bar').classList.remove('visible');
+      }
+    }
+
+    function updateBottomBar() {
+      const bar = document.getElementById('bottom-bar');
+      const count = state.selectedRecipes.size;
+      document.getElementById('selected-count').textContent = count;
+      if (count > 0 && (state.currentView === 'browse' || state.currentView === 'detail')) {
+        bar.classList.add('visible');
+      } else {
+        bar.classList.remove('visible');
+      }
+    }
+
+    /* ===== BROWSE VIEW ===== */
+    function getAllTags() {
+      const tags = new Set();
+      RECIPES.forEach(r => r.tags.forEach(t => tags.add(t)));
+      return [...tags].sort();
+    }
+
+    function getBandClass(recipe) {
+      const priority = ['pork', 'chicken', 'veggie', 'vegetarian', 'pasta', 'curry', 'rice'];
+      for (const p of priority) {
+        if (recipe.tags.includes(p)) return 'band-' + p;
+      }
+      return 'band-default';
+    }
+
+    function renderTagFilters() {
+      const tags = getAllTags();
+      const el = document.getElementById('tag-filters');
+      el.innerHTML = tags.map(tag =>
+        `<button class="tag-pill ${state.activeFilters.has(tag) ? 'active' : ''}" data-tag="${tag}">${tag}</button>`
+      ).join('');
+    }
+
+    function renderBrowseView() {
+      const grid = document.getElementById('recipe-grid');
+      const query = state.searchQuery.toLowerCase().trim();
+      const filters = state.activeFilters;
+
+      let recipes = RECIPES;
+      if (query) {
+        recipes = recipes.filter(r =>
+          r.name.toLowerCase().includes(query) ||
+          r.subtitle.toLowerCase().includes(query)
+        );
+      }
+      if (filters.size > 0) {
+        recipes = recipes.filter(r => r.tags.some(t => filters.has(t)));
+      }
+
+      if (recipes.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><p>No recipes found. Try adjusting your search or filters.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = recipes.map(r => {
+        const selected = state.selectedRecipes.has(r.id);
+        return `
+          <div class="recipe-card ${selected ? 'selected' : ''}" data-id="${r.id}">
+            <div class="card-band ${getBandClass(r)}"></div>
+            <img class="card-image" src="images/${r.id}.jpg" alt="${r.name}" loading="lazy">
+            <div class="card-body">
+              <button class="card-checkbox" data-select="${r.id}" aria-label="Select recipe">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+              </button>
+              <div class="card-name">${r.name}</div>
+              <div class="card-subtitle">${r.subtitle}</div>
+              <div class="card-meta">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                ${r.prepTime}
+              </div>
+              <div class="card-tags">
+                ${r.tags.map(t => `<span class="mini-tag tag-${t}">${t}</span>`).join('')}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    /* ===== DETAIL VIEW ===== */
+    function getServings(recipeId) {
+      const recipe = RECIPES.find(r => r.id === recipeId);
+      return state.servingSizes[recipeId] || recipe.servings.default;
+    }
+
+    function renderDetailView(recipeId) {
+      const r = RECIPES.find(x => x.id === recipeId);
+      if (!r) return;
+      const servings = getServings(recipeId);
+      const selected = state.selectedRecipes.has(r.id);
+      const catOrder = ['Meat & Fish', 'Dairy & Eggs', 'Fresh Veg & Herbs', 'Pantry & Dry Goods', 'Sauces & Condiments', 'Other'];
+
+      const grouped = {};
+      r.ingredients.forEach(ing => {
+        if (!grouped[ing.category]) grouped[ing.category] = [];
+        grouped[ing.category].push(ing);
+      });
+
+      const el = document.getElementById('detail-content');
+      el.innerHTML = `
+        <button class="back-btn" onclick="showView('browse')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back
+        </button>
+        <img class="detail-hero" src="images/${r.id}.jpg" alt="${r.name}">
+        <h1 class="detail-title">${r.name}</h1>
+        <p class="detail-subtitle">${r.subtitle}</p>
+        <div class="detail-info">
+          <span class="info-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            ${r.prepTime}
+          </span>
+          <span class="info-badge">${r.source}</span>
+        </div>
+        <div class="detail-tags">
+          ${r.tags.map(t => `<span class="mini-tag tag-${t}">${t}</span>`).join('')}
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-primary" onclick="showView('cooking','${r.id}')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Start Cooking
+          </button>
+          <button class="btn btn-secondary" onclick="toggleSelect('${r.id}')">
+            ${selected ? 'Deselect' : 'Select'}
+          </button>
+        </div>
+        ${r.cookingTools.length ? `<p class="tools-note">Tools needed: ${r.cookingTools.join(', ')}</p>` : ''}
+        <h3 class="section-title">Ingredients</h3>
+        <div class="serving-selector" data-recipe="${r.id}">
+          ${r.servings.options.map(s =>
+            `<button class="serving-btn ${s === servings ? 'active' : ''}" data-serving="${s}" data-recipe-id="${r.id}">${s}P</button>`
+          ).join('')}
+        </div>
+        ${catOrder.filter(c => grouped[c]).map(cat => `
+          <div class="ingredient-group">
+            <h4>${cat}</h4>
+            ${grouped[cat].map(ing => `
+              <div class="ingredient-item">
+                <span>${ing.name}</span>
+                <span class="ingredient-amount">${ing.amounts[servings]}</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+        ${r.pantryItems.length ? `
+          <div class="pantry-note">
+            <strong>From your pantry:</strong> ${r.pantryItems.join(', ')}
+          </div>
+        ` : ''}
+        <h3 class="section-title" style="margin-top:24px">Method</h3>
+        <div class="step-summary">
+          ${r.steps.map(s => `
+            <div class="step-summary-item">
+              <div class="step-num">${s.number}</div>
+              <div class="step-summary-content">
+                <h4>${s.title}</h4>
+                <p>${s.instruction.substring(0, 100)}${s.instruction.length > 100 ? '...' : ''}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    /* ===== SHOPPING LIST ===== */
+    function parseAmount(str) {
+      if (!str) return { value: 0, unit: '', raw: str };
+      const s = str.trim();
+      const match = s.match(/^([\d.]+(?:[\u00bd\u00bc\u00be])?|[\u00bd\u00bc\u00be])\s*(.*)$/);
+      if (!match) return { value: 0, unit: s, raw: s };
+
+      let valStr = match[1];
+      let unit = match[2].trim().toLowerCase();
+
+      let value = 0;
+      if (valStr.includes('\u00bd')) value = parseFloat(valStr.replace('\u00bd', '')) || 0 + 0.5;
+      else if (valStr === '\u00bd') value = 0.5;
+      else if (valStr === '\u00bc') value = 0.25;
+      else if (valStr === '\u00be') value = 0.75;
+      else value = parseFloat(valStr) || 0;
+
+      // Normalise plural units
+      unit = unit.replace(/s$/, '').replace(/clove$/, 'clove');
+      return { value, unit, raw: s };
+    }
+
+    function formatAmount(value, unit) {
+      if (value === 0 && !unit) return '';
+      let v = value;
+      // Format fractions
+      const frac = v % 1;
+      let vStr;
+      if (frac === 0) vStr = v.toString();
+      else if (Math.abs(frac - 0.5) < 0.01) vStr = (Math.floor(v) || '') + '\u00bd';
+      else if (Math.abs(frac - 0.25) < 0.01) vStr = (Math.floor(v) || '') + '\u00bc';
+      else if (Math.abs(frac - 0.75) < 0.01) vStr = (Math.floor(v) || '') + '\u00be';
+      else vStr = v.toFixed(1);
+
+      // Units that don't pluralise
+      const noPlural = ['g', 'ml', 'tbsp', 'tsp'];
+      let u = unit;
+      if (value !== 1 && !noPlural.includes(u)) u = u + 's';
+
+      return `${vStr} ${u}`.trim();
+    }
+
+    function mergeIngredients() {
+      const items = {};
+      const pantrySet = new Set();
+
+      for (const recipeId of state.selectedRecipes) {
+        const recipe = RECIPES.find(r => r.id === recipeId);
+        if (!recipe) continue;
+        const servings = getServings(recipeId);
+
+        for (const ing of recipe.ingredients) {
+          const key = ing.name.toLowerCase().trim();
+          const amount = ing.amounts[servings.toString()];
+          const parsed = parseAmount(amount);
+
+          if (!items[key]) {
+            items[key] = { name: ing.name, category: ing.category, amounts: [] };
+          }
+          items[key].amounts.push(parsed);
+        }
+
+        recipe.pantryItems.forEach(p => pantrySet.add(p));
+      }
+
+      // Merge amounts by unit
+      const merged = {};
+      for (const [key, item] of Object.entries(items)) {
+        const byUnit = {};
+        for (const a of item.amounts) {
+          const u = a.unit;
+          if (!byUnit[u]) byUnit[u] = 0;
+          byUnit[u] += a.value;
+        }
+        const display = Object.entries(byUnit)
+          .map(([unit, val]) => formatAmount(val, unit))
+          .join(' + ');
+        merged[key] = { name: item.name, category: item.category, display };
+      }
+
+      // Group by category
+      const catOrder = ['Meat & Fish', 'Dairy & Eggs', 'Fresh Veg & Herbs', 'Pantry & Dry Goods', 'Sauces & Condiments', 'Other'];
+      const categories = {};
+      for (const item of Object.values(merged)) {
+        const cat = item.category;
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(item);
+      }
+
+      return { categories, catOrder, pantryItems: [...pantrySet].sort() };
+    }
+
+    function renderShoppingView() {
+      const el = document.getElementById('shopping-content');
+      if (state.selectedRecipes.size === 0) {
+        el.innerHTML = `
+          <button class="back-btn" onclick="showView('browse')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+          </button>
+          <div class="empty-state" style="margin-top:40px">
+            <p>No recipes selected. Go back and select some recipes first.</p>
+          </div>`;
+        return;
+      }
+
+      const { categories, catOrder, pantryItems } = mergeIngredients();
+      const selectedRecipes = [...state.selectedRecipes].map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
+
+      el.innerHTML = `
+        <button class="back-btn" onclick="showView('browse')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+        </button>
+        <div class="shopping-header">
+          <h2>Shopping List</h2>
+        </div>
+        <div class="shopping-actions">
+          <button class="btn btn-sm btn-secondary" onclick="copyShoppingList()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copy
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="shareShoppingList()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Share
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="clearChecked()">Clear ticked</button>
+        </div>
+        <div class="shopping-recipe-servings">
+          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Servings per recipe:</div>
+          ${selectedRecipes.map(r => `
+            <div class="shopping-recipe-row">
+              <div class="shopping-recipe-name">${r.name.length > 30 ? r.name.substring(0, 30) + '...' : r.name}</div>
+              <div class="serving-toggle">
+                ${r.servings.options.map(s => `
+                  <button class="${getServings(r.id) === s ? 'active' : ''}" onclick="setServings('${r.id}', ${s})">${s}P</button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${catOrder.filter(c => categories[c]).map(cat => `
+          <div class="shopping-category">
+            <h3>${cat}</h3>
+            ${categories[cat].map(item => {
+              const key = item.name.toLowerCase();
+              const checked = state.shoppingChecked.has(key);
+              return `
+                <div class="shopping-item ${checked ? 'checked' : ''}" data-shop-key="${key}">
+                  <div class="shop-check">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <span class="shop-name">${item.name}</span>
+                  <span class="shop-amount">${item.display}</span>
+                </div>`;
+            }).join('')}
+          </div>
+        `).join('')}
+        ${pantryItems.length ? `
+          <div class="shopping-category">
+            <h3>From Your Pantry</h3>
+            ${pantryItems.map(item => {
+              const key = 'pantry_' + item.toLowerCase();
+              const checked = state.shoppingChecked.has(key);
+              return `
+                <div class="shopping-item ${checked ? 'checked' : ''}" data-shop-key="${key}">
+                  <div class="shop-check">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                  </div>
+                  <span class="shop-name">${item}</span>
+                  <span class="shop-amount">check stock</span>
+                </div>`;
+            }).join('')}
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function setServings(recipeId, servings) {
+      state.servingSizes[recipeId] = servings;
+      saveState();
+      if (state.currentView === 'shopping') renderShoppingView();
+      else if (state.currentView === 'detail') renderDetailView(recipeId);
+    }
+
+    function buildShoppingListText() {
+      const { categories, catOrder, pantryItems } = mergeIngredients();
+      const recipeNames = [...state.selectedRecipes]
+        .map(id => RECIPES.find(r => r.id === id))
+        .filter(Boolean)
+        .map(r => `  ${r.name} (${getServings(r.id)}P)`);
+
+      let text = `Shopping List\n`;
+      text += recipeNames.join('\n') + '\n';
+      text += '\u2500'.repeat(30) + '\n\n';
+
+      for (const cat of catOrder) {
+        if (!categories[cat]) continue;
+        text += cat.toUpperCase() + '\n';
+        for (const item of categories[cat]) {
+          const checked = state.shoppingChecked.has(item.name.toLowerCase());
+          text += `${checked ? '\u2611' : '\u2610'} ${item.name} \u2014 ${item.display}\n`;
+        }
+        text += '\n';
+      }
+
+      if (pantryItems.length) {
+        text += 'FROM YOUR PANTRY\n';
+        pantryItems.forEach(p => {
+          const checked = state.shoppingChecked.has('pantry_' + p.toLowerCase());
+          text += `${checked ? '\u2611' : '\u2610'} ${p}\n`;
+        });
+      }
+
+      return text;
+    }
+
+    function tryCopy(text) {
+      // Try modern API first, then execCommand, then return false
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(() => showTextModal(text));
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) { showToast('Copied!'); return; }
+      } catch(e) {
+        document.body.removeChild(ta);
+      }
+      showTextModal(text);
+    }
+
+    function copyShoppingList() {
+      tryCopy(buildShoppingListText());
+    }
+
+    function shareShoppingList() {
+      const text = buildShoppingListText();
+      if (navigator.share && window.isSecureContext) {
+        navigator.share({ title: 'Shopping List', text: text }).catch(() => {});
+      } else {
+        showTextModal(text);
+      }
+    }
+
+    function showTextModal(text) {
+      let modal = document.getElementById('text-modal');
+      if (modal) modal.remove();
+
+      modal = document.createElement('div');
+      modal.id = 'text-modal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;width:100%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:16px;font-weight:700">Shopping List</h3>
+            <button onclick="document.getElementById('text-modal').remove()" style="font-size:20px;color:var(--text-muted);padding:4px 8px">\u2715</button>
+          </div>
+          <textarea id="text-modal-ta" style="flex:1;min-height:250px;font-family:inherit;font-size:13px;line-height:1.5;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);resize:none;white-space:pre-wrap">${text.replace(/</g,'&lt;')}</textarea>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" style="flex:1" onclick="document.getElementById('text-modal-ta').select();document.execCommand('copy');showToast('Copied!');document.getElementById('text-modal').remove()">Select & Copy</button>
+            <button class="btn btn-secondary btn-sm" style="flex:1" onclick="document.getElementById('text-modal').remove()">Done</button>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);text-align:center">Tap the text, then use Select All + Copy</p>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      // Auto-select text
+      setTimeout(() => document.getElementById('text-modal-ta').select(), 100);
+    }
+
+    function clearChecked() {
+      state.shoppingChecked.clear();
+      saveState();
+      renderShoppingView();
+    }
+
+    /* ===== COOKING MODE ===== */
+    function renderCookingView() {
+      const r = RECIPES.find(x => x.id === state.currentRecipeId);
+      if (!r) return;
+      const step = r.steps[state.currentStep];
+      const total = r.steps.length;
+      const isLast = state.currentStep >= total - 1;
+      const isFirst = state.currentStep <= 0;
+      const timerKey = `${r.id}_${step.number}`;
+      const timer = state.timers[timerKey];
+
+      let timerHtml = '';
+      if (step.timerMinutes) {
+        if (timer && timer.done) {
+          timerHtml = `<button class="timer-btn done" onclick="clearTimer('${timerKey}')">Timer Complete! Tap to dismiss</button>`;
+        } else if (timer && timer.remaining > 0) {
+          timerHtml = `<button class="timer-btn running" onclick="stopTimer('${timerKey}')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            ${formatTime(timer.remaining)}
+          </button>`;
+        } else {
+          timerHtml = `<button class="timer-btn" onclick="startTimer('${timerKey}', ${step.timerMinutes})">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Start Timer \u2014 ${step.timerMinutes} mins
+          </button>`;
+        }
+      }
+
+      const el = document.getElementById('cooking-content');
+      el.innerHTML = `
+        <div class="cooking-top">
+          <button class="cooking-exit" onclick="exitCooking()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Exit
+          </button>
+          <button class="cooking-ingredients-btn" onclick="openIngredientOverlay()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Ingredients
+          </button>
+        </div>
+        <div class="cooking-progress">
+          <div class="cooking-progress-text">Step ${state.currentStep + 1} of ${total}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${((state.currentStep + 1) / total) * 100}%"></div>
+          </div>
+        </div>
+        <div class="cooking-content" id="cooking-step-content">
+          <h2 class="cooking-step-title">${step.title}</h2>
+          <p class="cooking-instruction">${step.instruction}</p>
+          ${step.important ? `
+            <div class="cooking-important">
+              <strong>Important</strong>
+              ${step.important}
+            </div>
+          ` : ''}
+          ${step.tip ? `
+            <div class="cooking-tip">
+              <strong>Tip</strong>
+              ${step.tip}
+            </div>
+          ` : ''}
+          ${state.thermomixMode && step.thermomixTip ? `
+            <div class="cooking-thermomix">
+              <strong>Thermomix TM6</strong>
+              ${step.thermomixTip}
+            </div>
+          ` : ''}
+          ${timerHtml}
+        </div>
+        <div class="cooking-nav">
+          <button class="nav-btn prev" onclick="prevStep()" ${isFirst ? 'disabled' : ''}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Previous
+          </button>
+          <button class="nav-btn next" onclick="${isLast ? 'exitCooking()' : 'nextStep()'}">
+            ${isLast ? 'Finish' : 'Next'}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      `;
+
+      // Swipe handling
+      const content = document.getElementById('cooking-step-content');
+      let startX = 0;
+      content.addEventListener('touchstart', e => { startX = e.changedTouches[0].clientX; }, { passive: true });
+      content.addEventListener('touchend', e => {
+        const diff = e.changedTouches[0].clientX - startX;
+        if (Math.abs(diff) > 60) {
+          if (diff > 0) prevStep();
+          else nextStep();
+        }
+      }, { passive: true });
+    }
+
+    function nextStep() {
+      const r = RECIPES.find(x => x.id === state.currentRecipeId);
+      if (!r || state.currentStep >= r.steps.length - 1) return;
+      state.currentStep++;
+      renderCookingView();
+    }
+
+    function prevStep() {
+      if (state.currentStep <= 0) return;
+      state.currentStep--;
+      renderCookingView();
+    }
+
+    function exitCooking() {
+      document.getElementById('cooking-view').classList.remove('active');
+      releaseWakeLock();
+      showView('detail', state.currentRecipeId);
+    }
+
+    function openIngredientOverlay() {
+      const r = RECIPES.find(x => x.id === state.currentRecipeId);
+      if (!r) return;
+      const servings = getServings(r.id);
+      const catOrder = ['Meat & Fish', 'Dairy & Eggs', 'Fresh Veg & Herbs', 'Pantry & Dry Goods', 'Sauces & Condiments'];
+      const grouped = {};
+      r.ingredients.forEach(ing => {
+        if (!grouped[ing.category]) grouped[ing.category] = [];
+        grouped[ing.category].push(ing);
+      });
+
+      const overlay = document.getElementById('ingredient-overlay');
+      overlay.innerHTML = `
+        <div class="overlay-handle"></div>
+        <h3 class="overlay-title">Ingredients (${servings}P)</h3>
+        ${catOrder.filter(c => grouped[c]).map(cat => `
+          <div class="ingredient-group">
+            <h4>${cat}</h4>
+            ${grouped[cat].map(ing => `
+              <div class="ingredient-item">
+                <span>${ing.name}</span>
+                <span class="ingredient-amount">${ing.amounts[servings]}</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+        ${r.pantryItems.length ? `<div class="pantry-note"><strong>Pantry:</strong> ${r.pantryItems.join(', ')}</div>` : ''}
+      `;
+      overlay.classList.add('visible');
+      document.getElementById('overlay-backdrop').classList.add('visible');
+    }
+
+    function closeIngredientOverlay() {
+      document.getElementById('ingredient-overlay').classList.remove('visible');
+      document.getElementById('overlay-backdrop').classList.remove('visible');
+    }
+
+    /* ===== TIMERS ===== */
+    function startTimer(key, minutes) {
+      if (state.timers[key] && state.timers[key].intervalId) return;
+      state.timers[key] = {
+        remaining: minutes * 60,
+        done: false,
+        intervalId: setInterval(() => {
+          state.timers[key].remaining--;
+          if (state.timers[key].remaining <= 0) {
+            state.timers[key].remaining = 0;
+            state.timers[key].done = true;
+            clearInterval(state.timers[key].intervalId);
+            state.timers[key].intervalId = null;
+            // Vibrate + alert
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+            showToast('Timer complete!');
+          }
+          if (state.currentView === 'cooking') renderCookingView();
+        }, 1000)
+      };
+      renderCookingView();
+    }
+
+    function stopTimer(key) {
+      if (state.timers[key] && state.timers[key].intervalId) {
+        clearInterval(state.timers[key].intervalId);
+        state.timers[key].intervalId = null;
+      }
+      delete state.timers[key];
+      renderCookingView();
+    }
+
+    function clearTimer(key) {
+      delete state.timers[key];
+      renderCookingView();
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    /* ===== WAKE LOCK ===== */
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          state.wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch(e) {}
+    }
+
+    function releaseWakeLock() {
+      if (state.wakeLock) {
+        state.wakeLock.release();
+        state.wakeLock = null;
+      }
+    }
+
+    /* ===== TOAST ===== */
+    function showToast(msg) {
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:all 0.3s;pointer-events:none;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 2000);
+    }
+
+    /* ===== SELECTION ===== */
+    function toggleSelect(recipeId) {
+      if (state.selectedRecipes.has(recipeId)) {
+        state.selectedRecipes.delete(recipeId);
+      } else {
+        state.selectedRecipes.add(recipeId);
+      }
+      saveState();
+      renderBrowseView();
+      updateBottomBar();
+      if (state.currentView === 'detail') renderDetailView(recipeId);
+    }
+
+    function clearSelection() {
+      state.selectedRecipes.clear();
+      saveState();
+      renderBrowseView();
+      updateBottomBar();
+    }
+
+    /* ===== THERMOMIX TOGGLE ===== */
+    function toggleThermomix() {
+      state.thermomixMode = !state.thermomixMode;
+      saveState();
+      updateThermomixToggle();
+    }
+    function updateThermomixToggle() {
+      const btn = document.getElementById('tm-toggle');
+      if (btn) btn.classList.toggle('active', state.thermomixMode);
+    }
+
+    /* ===== EVENT DELEGATION ===== */
+    document.getElementById('recipe-grid').addEventListener('click', e => {
+      const selectBtn = e.target.closest('[data-select]');
+      if (selectBtn) {
+        e.stopPropagation();
+        toggleSelect(selectBtn.dataset.select);
+        return;
+      }
+      const card = e.target.closest('.recipe-card');
+      if (card) {
+        showView('detail', card.dataset.id);
+      }
+    });
+
+    document.getElementById('tag-filters').addEventListener('click', e => {
+      const pill = e.target.closest('.tag-pill');
+      if (!pill) return;
+      const tag = pill.dataset.tag;
+      if (state.activeFilters.has(tag)) state.activeFilters.delete(tag);
+      else state.activeFilters.add(tag);
+      renderTagFilters();
+      renderBrowseView();
+    });
+
+    document.getElementById('search-input').addEventListener('input', e => {
+      state.searchQuery = e.target.value;
+      renderBrowseView();
+    });
+
+    document.getElementById('detail-content').addEventListener('click', e => {
+      const servBtn = e.target.closest('[data-serving]');
+      if (servBtn) {
+        const recipeId = servBtn.dataset.recipeId;
+        const serving = parseInt(servBtn.dataset.serving);
+        setServings(recipeId, serving);
+      }
+    });
+
+    document.getElementById('shopping-content').addEventListener('click', e => {
+      const item = e.target.closest('.shopping-item');
+      if (!item) return;
+      const key = item.dataset.shopKey;
+      if (state.shoppingChecked.has(key)) state.shoppingChecked.delete(key);
+      else state.shoppingChecked.add(key);
+      saveState();
+      item.classList.toggle('checked');
+    });
+
+    /* ===== PWA SETUP ===== */
+    function setupPWA() {
+      // Inline manifest
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#7C9070"/><text x="96" y="125" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="80" font-weight="bold">DR</text></svg>`;
+      const iconDataUri = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+
+      const manifest = {
+        name: "Declan's Recipe Picker",
+        short_name: "Recipes",
+        start_url: ".",
+        display: "standalone",
+        background_color: "#FFF8F0",
+        theme_color: "#7C9070",
+        icons: [{ src: iconDataUri, sizes: "192x192", type: "image/svg+xml", purpose: "any" }]
+      };
+
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.head.appendChild(link);
+
+      // Apple touch icon
+      const appleLink = document.createElement('link');
+      appleLink.rel = 'apple-touch-icon';
+      appleLink.href = iconDataUri;
+      document.head.appendChild(appleLink);
+    }
+
+    /* ===== INIT ===== */
+    loadState();
+    renderTagFilters();
+    renderBrowseView();
+    updateBottomBar();
+    updateThermomixToggle();
+    setupPWA();
+
+    // Set default servings for all recipes
+    RECIPES.forEach(r => {
+      if (!state.servingSizes[r.id]) {
+        state.servingSizes[r.id] = r.servings.default;
+      }
+    });
+  </script>
+</body>
+</html>
